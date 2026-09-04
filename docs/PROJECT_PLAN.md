@@ -1,6 +1,6 @@
 # Project plan
 
-- Status: ready for problem validation and Phase 0 spikes
+- Status: core implementation started; Phase A demand validation remains open
 - Last updated: 2026-09-04
 - Owner: ShieldaAI maintainers
 - Repository: `ShieldaAI/select-all-matching`
@@ -137,7 +137,7 @@ Each requirement has observable evidence. An issue is not complete until its evi
 
 ## 7. Phase A: demand validation
 
-Budget: 1–2 focused days spread over at most two calendar weeks. The package and compatibility spikes may run in parallel, but feature implementation does not begin until this gate is reviewed.
+Budget: 1–2 focused days spread over at most two calendar weeks. The framework-independent core and codec may proceed as a reversible technical spike. React, TanStack, reference-server work, and a public prerelease do not begin until this gate is reviewed.
 
 Work:
 
@@ -300,6 +300,10 @@ Release sequence:
 
 Every prerelease command explicitly uses `--tag next`; npm's `latest` tag is reserved for stable releases.
 
+Before the first beta, protect `main` with a GitHub ruleset or branch protection that requires the
+declared pull-request CI jobs and blocks unreviewed direct changes. Configure private vulnerability
+reporting and a protected release environment before any public package is published.
+
 The release workflow runs for every published version, including a fresh run after changing package metadata from the prerelease to `1.0.0`:
 
 1. checks out the approved commit;
@@ -396,6 +400,7 @@ Risks are reviewed at each phase gate. A release blocker is an open issue labell
 - The demo covers explicit, page, all-matching, exclusions, scope changes, `A → B → A`, token expiry/reorder, permission revocation, and preview drift.
 - The threat model and responsibility matrix have no open `release-blocker` issue.
 - The quick start, server guide, API report, support matrix, and prerelease compatibility warning are present.
+- Required CI is enforced by repository rules, private vulnerability reporting is enabled, and the release environment requires approval.
 - `0.1.0-beta.0` can be published under `next` with provenance after approval.
 
 ### Version 1-ready
@@ -427,7 +432,7 @@ Risks are reviewed at each phase gate. A release blocker is an open issue labell
 ## 18. Documentation ownership
 
 - [TECHNICAL_SPEC.md](./TECHNICAL_SPEC.md) is the normative proposed behavior until implementation-specific public guides replace a section.
-- This project plan becomes historical/non-normative once implementation begins; progress lives in issues and milestones.
+- This remains the gate and release plan through the first stable release. Once issue tracking is established, issues and milestones own day-to-day progress; after 1.0 this document becomes historical.
 - `README.md` is the concise entry point and must not redefine edge cases.
 - `docs/versioning.md` owns protocol and support policy.
 - Migration documentation is created when an actual migration exists, not in advance.

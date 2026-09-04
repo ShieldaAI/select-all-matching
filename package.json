@@ -1,0 +1,84 @@
+{
+  "name": "select-all-matching",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Selection state for server-paginated tables, including all matching rows with exclusions.",
+  "keywords": [
+    "bulk-selection",
+    "pagination",
+    "row-selection",
+    "server-side",
+    "table",
+    "typescript"
+  ],
+  "homepage": "https://github.com/ShieldaAI/select-all-matching#readme",
+  "bugs": {
+    "url": "https://github.com/ShieldaAI/select-all-matching/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ShieldaAI/select-all-matching.git"
+  },
+  "license": "MIT",
+  "author": "ShieldaAI contributors",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./server": {
+      "types": "./dist/server/index.d.ts",
+      "import": "./dist/server/index.js",
+      "default": "./dist/server/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "CHANGELOG.md",
+    "LICENSE",
+    "README.md",
+    "SECURITY.md",
+    "docs"
+  ],
+  "engines": {
+    "node": "^22.0.0 || ^24.0.0"
+  },
+  "packageManager": "npm@11.11.0",
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "scripts": {
+    "build": "node ./scripts/clean.mjs && tsc -p tsconfig.build.json",
+    "check": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run package:check",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint . --max-warnings 0",
+    "pack:dry-run": "npm run build && npm pack --dry-run",
+    "pack:test": "npm run package:check",
+    "package:check": "node ./scripts/test-packed.mjs",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@arethetypeswrong/cli": "0.18.5",
+    "@eslint/js": "10.0.1",
+    "@types/node": "22.20.1",
+    "@vitest/coverage-v8": "5.0.0",
+    "eslint": "10.10.0",
+    "fast-check": "4.9.0",
+    "globals": "17.12.0",
+    "prettier": "3.9.6",
+    "publint": "0.3.24",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.69.0",
+    "vitest": "5.0.0"
+  }
+}

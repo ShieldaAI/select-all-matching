@@ -1,6 +1,6 @@
 # Technical specification
 
-- Status: candidate contract for validation and Phase 0 spikes
+- Status: core and draft codecs implemented; adapter and server-coordination contracts remain candidates
 - Last updated: 2026-09-04
 - Owner: ShieldaAI maintainers
 - Related plan: [PROJECT_PLAN.md](./PROJECT_PLAN.md)
@@ -51,6 +51,7 @@ export type AllMatchingScope = Readonly<{
 }>;
 
 declare const normalizedSelection: unique symbol;
+declare const selectionIdType: unique symbol;
 
 export type SelectionState<Id extends RowId = RowId> = (
   | Readonly<{
@@ -73,10 +74,11 @@ export type SelectionState<Id extends RowId = RowId> = (
     }>
 ) & {
   readonly [normalizedSelection]: true;
+  readonly [selectionIdType]?: Id;
 };
 ```
 
-The non-exported brand prevents ordinary TypeScript object literals from pretending to be validated state. It is not a security boundary: a cast or untyped JavaScript can bypass types. Public constructors and decoders create normalized state, and public operations validate new IDs and scope values at runtime.
+The normalization brand is absent from the public entry point and is represented at runtime by a non-enumerable marker. The second, type-only phantom field keeps the ID parameter attached to every variant, including after narrowing to `mode: "empty"`. Public constructors and decoders create frozen normalized state; every public state consumer checks the runtime marker so object-spread imitations fail instead of escaping invariants. This is still not an authorization boundary: application code controls its own process and can use casts or reflection. Public operations also validate new IDs and scope values at runtime.
 
 An application with no accepted server scope yet keeps that loading state outside this package.
 
@@ -293,6 +295,18 @@ decodeSelection(input, {
 })
 ```
 
+A successful decoder is a refinement, not a transcoder: its returned string or
+number must be SameValueZero-equal to the normalized wire value. This supports
+branding and narrower ID domains while preserving deterministic codec round
+trips. Applications that need to change ID representation must do so in a
+separate application-level wire codec.
+
+Decoder rejection codes are trusted application diagnostics. They must be
+stable, non-sensitive identifiers rather than payload-derived messages. The
+library propagates only 1–64 character ASCII identifier codes and omits an
+exact echo of a rejected string ID; applications remain responsible for not
+deriving secrets into a different accepted code.
+
 A caller cannot obtain `SelectionState<Uuid>` merely by supplying a generic type argument. Tests cover default mixed IDs, number-only IDs, and a branded UUID decoder.
 
 ### 6.2 Separate version domains
@@ -301,16 +315,16 @@ Persisted client state and client/server bulk requests use separate version fiel
 
 ```ts
 type EncodedSelectionDraft<Id> = {
-  stateVersion: 0;
-  scopeKey: string;
-  scopeRevision: number;
-  selection:
+  readonly stateVersion: 0;
+  readonly scopeKey: string;
+  readonly scopeRevision: number;
+  readonly selection:
     | { mode: "empty" }
-    | { mode: "explicit"; ids: Id[] }
+    | { mode: "explicit"; readonly ids: readonly Id[] }
     | {
         mode: "allMatching";
-        scopeToken: string;
-        excludedIds: Id[];
+        readonly scopeToken: string;
+        readonly excludedIds: readonly Id[];
       };
 };
 
@@ -318,13 +332,13 @@ type BulkSelectionDraft<Id> =
   | {
       protocolVersion: 0;
       mode: "explicit";
-      ids: Id[];
+      readonly ids: readonly Id[];
     }
   | {
       protocolVersion: 0;
       mode: "allMatching";
-      scopeToken: string;
-      excludedIds: Id[];
+      readonly scopeToken: string;
+      readonly excludedIds: readonly Id[];
     };
 ```
 
@@ -373,9 +387,20 @@ All limit values are positive safe integers. The starting defaults, subject to t
 | Scope token | 4,096 UTF-8 bytes |
 | One string ID | 1,024 UTF-8 bytes |
 
+Recognized decoder options and limit fields must be own properties. Inherited
+recognized fields are rejected as programmer configuration errors so prototype
+pollution cannot weaken a limit or silently remove a typed ID decoder.
+
 UTF-8 byte length is the exact unit. The HTTP server still applies a whole-body byte limit before JSON parsing.
 
 Pure in-memory transitions enforce ID and scope invariants but do not impose an endpoint's size policy. State decoding uses `StateDecodeLimits`; bulk conversion and server decoding use `BulkLimits`. This lets one in-memory selection be checked against different endpoint limits and prevents hidden policy inside ordinary checkbox operations.
+
+`encodeSelection` also leaves size policy to its caller and therefore always
+encodes normalized state. Its round-trip guarantee is conditional on decoding
+with limits large enough for that state; callers that persist larger values
+must save and reuse an equal or broader `StateDecodeLimits` policy. Default
+decoding can intentionally reject an otherwise valid in-memory state that
+exceeds the default storage boundary.
 
 External codecs accept `unknown` and return structured errors; they never throw for payload contents. They reject unsupported versions, extra or missing fields, invalid scalar types, over-limit values, invalid IDs, duplicate IDs, and empty explicit selections.
 
@@ -616,7 +641,7 @@ Cover every state/action combination plus:
 - exact and one-over limits; and
 - explicit execution after an ID stops matching its original filter.
 
-Use a finite-universe `Set` oracle and generate 1–200 command sequences. Required properties include model equivalence, idempotent set operations, page permutation invariance, stale-context rejection, exclusion subtraction, non-mutation of frozen inputs, round trips, and parser totality over arbitrary JSON-compatible values.
+Use a finite-universe `Set` oracle and generate 1–200 command sequences. Required properties include model equivalence, idempotent set operations, page permutation invariance, stale-context rejection, exclusion subtraction, non-mutation of frozen inputs, codec round trips under matching limits, and parser totality over arbitrary JSON-compatible values.
 
 All-matching membership properties evaluate only IDs known to belong to the modeled candidate scope. The reference server model separately generates live inserts and removals.
 

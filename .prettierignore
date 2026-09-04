@@ -1,0 +1,9 @@
+coverage
+dist
+node_modules
+package-lock.json
+*.tgz
+
+# These design documents predate the formatter and are reviewed as prose.
+docs/PROJECT_PLAN.md
+docs/TECHNICAL_SPEC.md
