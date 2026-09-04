@@ -81,6 +81,18 @@ A scope token represents selection intent; it is not authorization. The server m
 server-owned data and recheck the current user, tenant, operation, and affected rows before doing
 any work.
 
+## API at a glance
+
+| What you need                    | API                                                                           |
+| -------------------------------- | ----------------------------------------------------------------------------- |
+| Start or clear selection         | `emptySelection`, `clearSelection`                                            |
+| Change one row or a loaded page  | `setIdSelected`, `setIdsSelected`                                             |
+| Select the whole filtered result | `selectAllMatching`                                                           |
+| Read row and page checkbox state | `createSelectionView`, `isIdSelected`, `getPageSelection`                     |
+| Store or submit selection        | `encodeSelection`, `decodeSelection`, `toBulkSelection`                       |
+| Validate a bulk request          | `decodeBulkSelection` from `select-all-matching/server`                       |
+| Move to a changed query scope    | `reconcileScope`; stale transitions are returned rather than silently applied |
+
 ## Development
 
 Use a current Node 22 or Node 24 release:
