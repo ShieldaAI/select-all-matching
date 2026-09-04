@@ -1,9 +1,15 @@
 # select-all-matching
 
-Selection state for server-paginated tables.
+[![CI](https://github.com/ShieldaAI/select-all-matching/actions/workflows/ci.yml/badge.svg)](https://github.com/ShieldaAI/select-all-matching/actions/workflows/ci.yml)
 
-The library represents either a known list of selected IDs or every row in a server-defined scope
-except a short exclusion list. It never needs to load every matching ID into the browser.
+“Select all” for tables where most rows live on another page.
+
+A browser usually knows only the current page. Fetching every matching ID just to run a bulk action
+is slow, wasteful, and easy to get wrong when filters change. This library represents either a known
+list of selected IDs or every row in a server-defined scope except a short exclusion list.
+
+It is framework-agnostic, has no runtime dependencies, and never needs to load every matching ID
+into the browser.
 
 The API and version-0 formats are prerelease and may change before the first stable version.
 
@@ -55,6 +61,20 @@ if (all.applied) {
     }
   }
 }
+```
+
+On the server, decode the untrusted request before resolving any rows:
+
+```ts
+import { decodeBulkSelection } from "select-all-matching/server";
+
+const selection = decodeBulkSelection(requestBody);
+if (!selection.ok) {
+  return Response.json({ error: selection.error.code }, { status: 400 });
+}
+
+// Resolve scopeToken, authorize the current user and operation, then apply exclusions.
+await archiveCustomers(selection.value);
 ```
 
 A scope token represents selection intent; it is not authorization. The server must resolve it from

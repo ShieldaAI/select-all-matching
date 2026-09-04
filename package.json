@@ -1,12 +1,19 @@
 {
   "name": "select-all-matching",
   "version": "0.1.0-beta.0",
-  "description": "Cross-page row selection for server-paginated tables.",
+  "description": "Select all filtered rows across server-paginated tables without loading every record.",
   "keywords": [
+    "bulk-actions",
     "bulk-selection",
+    "cross-page-selection",
+    "data-grid",
+    "framework-agnostic",
     "pagination",
     "row-selection",
+    "select-all",
+    "selection-state",
     "server-side",
+    "server-side-pagination",
     "table",
     "typescript"
   ],
