@@ -1,0 +1,6 @@
+{
+  "name": "select-all-matching-packed-consumer",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module"
+}

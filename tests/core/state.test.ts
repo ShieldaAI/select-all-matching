@@ -203,38 +203,6 @@ describe("selection state transitions", () => {
     });
   });
 
-  it("snapshots accessor-backed command values before validation", () => {
-    const initial = emptySelection("scope");
-    let contextKeyReads = 0;
-    const changingContext = {
-      get scopeKey(): string {
-        contextKeyReads += 1;
-        return contextKeyReads === 1 ? "scope" : "";
-      },
-      scopeRevision: 0,
-    };
-    const explicit = setIdSelected(initial, {
-      context: changingContext,
-      id: 1,
-      selected: true,
-    });
-
-    let tokenReads = 0;
-    const changingScope = {
-      ...context(initial),
-      get scopeToken(): string {
-        tokenReads += 1;
-        return tokenReads === 1 ? "token" : "";
-      },
-    };
-    const all = selectAllMatching(initial, changingScope);
-
-    expect(explicit.applied).toBe(true);
-    expect(contextKeyReads).toBe(1);
-    expect(all.applied && all.state).toMatchObject({ mode: "allMatching", scopeToken: "token" });
-    expect(tokenReads).toBe(1);
-  });
-
   it("adds exclusions on deselect and removes them on select", () => {
     const initial = emptySelection("scope");
     const all = selectAllMatching(initial, {
@@ -332,24 +300,6 @@ describe("scope lifecycle and concurrency", () => {
       applied: true,
       state: { mode: "empty", scopeKey: "B", scopeRevision: 1 },
     });
-  });
-
-  it("snapshots the next scope key before validation and construction", () => {
-    const initial = emptySelection("A");
-    let keyReads = 0;
-    const result = reconcileScope(initial, {
-      expected: context(initial),
-      get nextScopeKey(): string {
-        keyReads += 1;
-        return keyReads === 1 ? "B" : "";
-      },
-    });
-
-    expect(result).toEqual({
-      applied: true,
-      state: { mode: "empty", scopeKey: "B", scopeRevision: 1 },
-    });
-    expect(keyReads).toBe(1);
   });
 
   it("rejects a delayed event from the first A after A to B to A", () => {

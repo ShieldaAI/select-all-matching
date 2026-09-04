@@ -2,7 +2,7 @@
   "name": "select-all-matching",
   "version": "0.0.0",
   "private": true,
-  "description": "Selection state for server-paginated tables, including all matching rows with exclusions.",
+  "description": "Cross-page row selection for server-paginated tables.",
   "keywords": [
     "bulk-selection",
     "pagination",
@@ -44,7 +44,8 @@
     "LICENSE",
     "README.md",
     "SECURITY.md",
-    "docs"
+    "docs/TECHNICAL_SPEC.md",
+    "docs/versioning.md"
   ],
   "engines": {
     "node": "^22.0.0 || ^24.0.0"

@@ -4,10 +4,7 @@ import { assertNormalizedSelection, createNormalizedSelection } from "./state.js
 export type DecodeResult<Value> =
   Readonly<{ ok: true; value: Value }> | Readonly<{ ok: false; code: string }>;
 
-/**
- * Validates and narrows a wire ID without changing its normalized primitive
- * value. Successful transcoding requires a separate application-level codec.
- */
+/** Narrows a wire ID without changing its string or number value. */
 export type IdDecoder<Id extends RowId> = (value: unknown) => DecodeResult<Id>;
 
 export type BulkLimits = Readonly<{
@@ -76,7 +73,7 @@ export type PayloadErrorCode =
 export type PayloadError = Readonly<{
   code: PayloadErrorCode;
   path: string;
-  /** A trusted application decoder's stable, non-sensitive diagnostic code. */
+  /** Stable code returned by the application's ID decoder. */
   decoderCode?: string;
 }>;
 
@@ -110,9 +107,9 @@ export type TypedBulkDecodeOptions<Id extends RowId> = Readonly<{
 
 type UnknownRecord = Record<string, unknown>;
 
-type ResolvedDecodeOptions<Id extends RowId> = Readonly<{
+type ResolvedDecodeOptions<Id extends RowId, Limits extends BulkLimits = BulkLimits> = Readonly<{
   decodeId: IdDecoder<Id> | undefined;
-  limits: BulkLimits;
+  limits: Limits;
 }>;
 
 const hasOwn = (value: object, key: string): boolean =>
@@ -120,9 +117,6 @@ const hasOwn = (value: object, key: string): boolean =>
 
 const ownValue = (value: UnknownRecord | undefined, key: string): unknown =>
   value !== undefined && hasOwn(value, key) ? value[key] : undefined;
-
-const ownValueOr = (value: UnknownRecord | undefined, key: string, fallback: unknown): unknown =>
-  value !== undefined && hasOwn(value, key) ? value[key] : fallback;
 
 const error = (
   code: PayloadErrorCode,
@@ -202,9 +196,19 @@ function utf8ByteLength(value: string): number {
   return bytes;
 }
 
-function assertOptions(value: unknown): asserts value is UnknownRecord | undefined {
-  if (value !== undefined && !isRecord(value)) {
-    throw new TypeError("Codec options must be an object when provided");
+function assertPlainObject(
+  value: unknown,
+  name: string,
+): asserts value is UnknownRecord | undefined {
+  if (value === undefined) return;
+
+  if (!isRecord(value)) {
+    throw new TypeError(`${name} must be a plain object when provided`);
+  }
+
+  const prototype = Object.getPrototypeOf(value) as unknown;
+  if (prototype !== Object.prototype && prototype !== null) {
+    throw new TypeError(`${name} must be a plain object when provided`);
   }
 }
 
@@ -224,112 +228,79 @@ function assertOnlyOptionFields(
   }
 }
 
-function assertRecognizedFieldsAreOwn(
-  value: UnknownRecord | undefined,
-  recognized: readonly string[],
-  name: string,
-): void {
-  if (value === undefined) return;
-
-  for (const field of recognized) {
-    if (!hasOwn(value, field) && field in value) {
-      throw new TypeError(`${name}.${field} must be an own property`);
-    }
-  }
-}
-
-function positiveSafeInteger(value: unknown, name: string): number {
+function readLimit(input: UnknownRecord | undefined, key: string, fallback: number): number {
+  const value = input !== undefined && hasOwn(input, key) ? input[key] : fallback;
   if (!Number.isSafeInteger(value) || (value as number) <= 0) {
-    throw new TypeError(`${name} must be a positive safe integer`);
+    throw new TypeError(`limits.${key} must be a positive safe integer`);
   }
   return value as number;
 }
 
 function resolveBulkLimits(limits: unknown): BulkLimits {
-  if (limits !== undefined && !isRecord(limits)) {
-    throw new TypeError("limits must be an object when provided");
-  }
-
-  const input = limits as UnknownRecord | undefined;
-  assertRecognizedFieldsAreOwn(
-    input,
-    ["maxIds", "maxScopeTokenBytes", "maxStringIdBytes"],
-    "limits",
-  );
+  assertPlainObject(limits, "limits");
+  const input = limits;
   assertOnlyOptionFields(input, ["maxIds", "maxScopeTokenBytes", "maxStringIdBytes"], "limits");
   return {
-    maxIds: positiveSafeInteger(
-      ownValueOr(input, "maxIds", DEFAULT_BULK_LIMITS.maxIds),
-      "limits.maxIds",
+    maxIds: readLimit(input, "maxIds", DEFAULT_BULK_LIMITS.maxIds),
+    maxScopeTokenBytes: readLimit(
+      input,
+      "maxScopeTokenBytes",
+      DEFAULT_BULK_LIMITS.maxScopeTokenBytes,
     ),
-    maxScopeTokenBytes: positiveSafeInteger(
-      ownValueOr(input, "maxScopeTokenBytes", DEFAULT_BULK_LIMITS.maxScopeTokenBytes),
-      "limits.maxScopeTokenBytes",
-    ),
-    maxStringIdBytes: positiveSafeInteger(
-      ownValueOr(input, "maxStringIdBytes", DEFAULT_BULK_LIMITS.maxStringIdBytes),
-      "limits.maxStringIdBytes",
-    ),
+    maxStringIdBytes: readLimit(input, "maxStringIdBytes", DEFAULT_BULK_LIMITS.maxStringIdBytes),
   };
 }
 
 function resolveStateLimits(limits: unknown): StateDecodeLimits {
-  if (limits !== undefined && !isRecord(limits)) {
-    throw new TypeError("limits must be an object when provided");
-  }
-
-  const input = limits as UnknownRecord | undefined;
-  assertRecognizedFieldsAreOwn(
-    input,
-    ["maxIds", "maxScopeKeyBytes", "maxScopeTokenBytes", "maxStringIdBytes"],
-    "limits",
-  );
+  assertPlainObject(limits, "limits");
+  const input = limits;
   assertOnlyOptionFields(
     input,
     ["maxIds", "maxScopeKeyBytes", "maxScopeTokenBytes", "maxStringIdBytes"],
     "limits",
   );
   return {
-    maxIds: positiveSafeInteger(
-      ownValueOr(input, "maxIds", DEFAULT_STATE_DECODE_LIMITS.maxIds),
-      "limits.maxIds",
+    maxIds: readLimit(input, "maxIds", DEFAULT_STATE_DECODE_LIMITS.maxIds),
+    maxScopeTokenBytes: readLimit(
+      input,
+      "maxScopeTokenBytes",
+      DEFAULT_STATE_DECODE_LIMITS.maxScopeTokenBytes,
     ),
-    maxScopeTokenBytes: positiveSafeInteger(
-      ownValueOr(input, "maxScopeTokenBytes", DEFAULT_STATE_DECODE_LIMITS.maxScopeTokenBytes),
-      "limits.maxScopeTokenBytes",
+    maxStringIdBytes: readLimit(
+      input,
+      "maxStringIdBytes",
+      DEFAULT_STATE_DECODE_LIMITS.maxStringIdBytes,
     ),
-    maxStringIdBytes: positiveSafeInteger(
-      ownValueOr(input, "maxStringIdBytes", DEFAULT_STATE_DECODE_LIMITS.maxStringIdBytes),
-      "limits.maxStringIdBytes",
-    ),
-    maxScopeKeyBytes: positiveSafeInteger(
-      ownValueOr(input, "maxScopeKeyBytes", DEFAULT_STATE_DECODE_LIMITS.maxScopeKeyBytes),
-      "limits.maxScopeKeyBytes",
+    maxScopeKeyBytes: readLimit(
+      input,
+      "maxScopeKeyBytes",
+      DEFAULT_STATE_DECODE_LIMITS.maxScopeKeyBytes,
     ),
   };
 }
 
 function resolveDecodeOptions<Id extends RowId>(
   options: unknown,
+  kind: "state",
+): ResolvedDecodeOptions<Id, StateDecodeLimits>;
+function resolveDecodeOptions<Id extends RowId>(
+  options: unknown,
+  kind: "bulk",
+): ResolvedDecodeOptions<Id>;
+function resolveDecodeOptions<Id extends RowId>(
+  options: unknown,
   kind: "bulk" | "state",
-): ResolvedDecodeOptions<Id> & { limits: StateDecodeLimits | BulkLimits } {
-  assertOptions(options);
-  const input = options as UnknownRecord | undefined;
-  assertRecognizedFieldsAreOwn(input, ["decodeId", "limits"], "options");
+): ResolvedDecodeOptions<Id, StateDecodeLimits | BulkLimits> {
+  assertPlainObject(options, "Codec options");
+  const input = options;
   assertOnlyOptionFields(input, ["decodeId", "limits"], "options");
-  const hasDecoder = input !== undefined && hasOwn(input, "decodeId");
   const candidate = ownValue(input, "decodeId");
 
-  if (hasDecoder && typeof candidate !== "function") {
+  if (candidate !== undefined && typeof candidate !== "function") {
     throw new TypeError("decodeId must be a function when provided");
   }
 
-  const hasLimits = input !== undefined && hasOwn(input, "limits");
   const configuredLimits = ownValue(input, "limits");
-  if (hasLimits && !isRecord(configuredLimits)) {
-    throw new TypeError("limits must be an object when provided");
-  }
-
   return {
     decodeId: candidate as IdDecoder<Id> | undefined,
     limits:
@@ -501,7 +472,7 @@ function decodeMode(
 
 function decodeSelectionUnsafe<Id extends RowId>(
   input: unknown,
-  options: ResolvedDecodeOptions<Id> & { limits: StateDecodeLimits },
+  options: ResolvedDecodeOptions<Id, StateDecodeLimits>,
 ): PayloadDecodeResult<SelectionState<Id>> {
   if (!isRecord(input)) {
     return error("invalidType", "$");
@@ -572,16 +543,6 @@ function decodeSelectionUnsafe<Id extends RowId>(
   const scopeRevision = decodeScopeRevision(input["scopeRevision"], "$.scopeRevision");
   if (!scopeRevision.ok) return scopeRevision;
 
-  let scopeToken: PayloadDecodeResult<string> | undefined;
-  if (mode.value === "allMatching") {
-    scopeToken = decodeRequiredString(
-      selection["scopeToken"],
-      "$.selection.scopeToken",
-      options.limits.maxScopeTokenBytes,
-    );
-    if (!scopeToken.ok) return scopeToken;
-  }
-
   if (mode.value === "empty") {
     return {
       ok: true,
@@ -593,16 +554,16 @@ function decodeSelectionUnsafe<Id extends RowId>(
     };
   }
 
-  const ids = decodeIdList(
-    listValue as unknown[],
-    listLength,
-    listPath,
-    options.limits,
-    options.decodeId,
-  );
-  if (!ids.ok) return ids;
-
   if (mode.value === "explicit") {
+    const ids = decodeIdList(
+      listValue as unknown[],
+      listLength,
+      listPath,
+      options.limits,
+      options.decodeId,
+    );
+    if (!ids.ok) return ids;
+
     return {
       ok: true,
       value: createNormalizedSelection({
@@ -614,14 +575,30 @@ function decodeSelectionUnsafe<Id extends RowId>(
     };
   }
 
+  const scopeToken = decodeRequiredString(
+    selection["scopeToken"],
+    "$.selection.scopeToken",
+    options.limits.maxScopeTokenBytes,
+  );
+  if (!scopeToken.ok) return scopeToken;
+
+  const excludedIds = decodeIdList(
+    listValue as unknown[],
+    listLength,
+    listPath,
+    options.limits,
+    options.decodeId,
+  );
+  if (!excludedIds.ok) return excludedIds;
+
   return {
     ok: true,
     value: createNormalizedSelection({
       mode: "allMatching",
       scopeKey: scopeKey.value,
       scopeRevision: scopeRevision.value,
-      scopeToken: (scopeToken as { ok: true; value: string }).value,
-      excludedIds: ids.value,
+      scopeToken: scopeToken.value,
+      excludedIds: excludedIds.value,
     }),
   };
 }
@@ -668,9 +645,7 @@ export function decodeSelection<Id extends RowId>(
   input: unknown,
   options?: SelectionDecodeOptions | TypedSelectionDecodeOptions<Id>,
 ): PayloadDecodeResult<SelectionState<Id>> {
-  const resolved = resolveDecodeOptions<Id>(options, "state") as ResolvedDecodeOptions<Id> & {
-    limits: StateDecodeLimits;
-  };
+  const resolved = resolveDecodeOptions<Id>(options, "state");
 
   try {
     return decodeSelectionUnsafe(input, resolved);
@@ -763,46 +738,52 @@ function decodeBulkSelectionUnsafe<Id extends RowId>(
     return error("tooManyIds", listPath);
   }
 
-  let scopeToken: PayloadDecodeResult<string> | undefined;
-  if (mode.value === "allMatching") {
-    scopeToken = decodeRequiredString(
-      input["scopeToken"],
-      "$.scopeToken",
-      options.limits.maxScopeTokenBytes,
-    );
-    if (!scopeToken.ok) return scopeToken;
+  if (mode.value === "explicit") {
+    const ids = decodeIdList(listValue, listLength, listPath, options.limits, options.decodeId);
+    if (!ids.ok) return ids;
+
+    return {
+      ok: true,
+      value: { protocolVersion: 0, mode: "explicit", ids: ids.value },
+    };
   }
 
-  const ids = decodeIdList(listValue, listLength, listPath, options.limits, options.decodeId);
-  if (!ids.ok) return ids;
+  const scopeToken = decodeRequiredString(
+    input["scopeToken"],
+    "$.scopeToken",
+    options.limits.maxScopeTokenBytes,
+  );
+  if (!scopeToken.ok) return scopeToken;
 
-  return mode.value === "explicit"
-    ? {
-        ok: true,
-        value: { protocolVersion: 0, mode: "explicit", ids: ids.value },
-      }
-    : {
-        ok: true,
-        value: {
-          protocolVersion: 0,
-          mode: "allMatching",
-          scopeToken: (scopeToken as { ok: true; value: string }).value,
-          excludedIds: ids.value,
-        },
-      };
+  const excludedIds = decodeIdList(
+    listValue,
+    listLength,
+    listPath,
+    options.limits,
+    options.decodeId,
+  );
+  if (!excludedIds.ok) return excludedIds;
+
+  return {
+    ok: true,
+    value: {
+      protocolVersion: 0,
+      mode: "allMatching",
+      scopeToken: scopeToken.value,
+      excludedIds: excludedIds.value,
+    },
+  };
 }
 
-/** @internal Used by the isolated server entry point. */
-export function __decodeBulkSelection<Id extends RowId>(
+export function decodeBulkSelection<Id extends RowId>(
   input: unknown,
   options: TypedBulkDecodeOptions<Id>,
 ): PayloadDecodeResult<BulkSelectionDraft<Id>>;
-/** @internal Used by the isolated server entry point. */
-export function __decodeBulkSelection(
+export function decodeBulkSelection(
   input: unknown,
   options?: BulkDecodeOptions,
 ): PayloadDecodeResult<BulkSelectionDraft<RowId>>;
-export function __decodeBulkSelection<Id extends RowId>(
+export function decodeBulkSelection<Id extends RowId>(
   input: unknown,
   options?: BulkDecodeOptions | TypedBulkDecodeOptions<Id>,
 ): PayloadDecodeResult<BulkSelectionDraft<Id>> {

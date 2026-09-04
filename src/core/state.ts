@@ -68,7 +68,6 @@ function freezeState<Id extends RowId>(
   return Object.freeze(value) as SelectionState<Id>;
 }
 
-/** Internal guard for every public operation that consumes package-owned state. */
 export function assertNormalizedSelection<Id extends RowId>(
   value: SelectionState<Id>,
   name = "state",
@@ -113,11 +112,7 @@ function allMatchingAt<Id extends RowId>(
   });
 }
 
-/**
- * Internal construction boundary used by trusted package codecs. It is exported
- * from this module for package-internal imports, but omitted from the public
- * core barrel.
- */
+/** Builds a normalized state after a trusted package decoder has checked its shape. */
 export function createNormalizedSelection<Id extends RowId = RowId>(
   input: NormalizedSelectionInput<Id>,
 ): SelectionState<Id> {

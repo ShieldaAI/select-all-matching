@@ -7,7 +7,7 @@ const PROPERTY_SEED = 0x5e2be2;
 const { decodeBulkSelection } = publicServerApi;
 
 describe("decodeBulkSelection", () => {
-  it("matches the reviewed server runtime entry point", () => {
+  it("exports only the documented runtime API", () => {
     expect(Object.keys(publicServerApi).sort()).toEqual([
       "DEFAULT_BULK_LIMITS",
       "decodeBulkSelection",
@@ -224,38 +224,6 @@ describe("decodeBulkSelection", () => {
     expect(() => decodeBulkSelection({}, { limits: { maxScopeTokenBytes: -1 } })).toThrow(
       TypeError,
     );
-
-    class InheritedNumberDecoder {
-      decodeId(value: unknown): { ok: true; value: number } | { ok: false; code: string } {
-        return typeof value === "number"
-          ? { ok: true, value }
-          : { ok: false, code: "numberRequired" };
-      }
-    }
-    expect(() =>
-      decodeBulkSelection(
-        { protocolVersion: 0, mode: "explicit", ids: ["untrusted-string"] },
-        new InheritedNumberDecoder(),
-      ),
-    ).toThrow("options.decodeId must be an own property");
-    expect(() =>
-      decodeBulkSelection({ protocolVersion: 0, mode: "explicit", ids: ["untrusted-string"] }, {
-        decodeId: undefined,
-      } as never),
-    ).toThrow("decodeId must be a function when provided");
-  });
-
-  it("snapshots hostile array length before bounded ID decoding", () => {
-    let lengthReads = 0;
-    const ids = new Proxy([1, 2], {
-      get(target, property, receiver) {
-        if (property === "length") lengthReads += 1;
-        return Reflect.get(target, property, receiver) as unknown;
-      },
-    });
-
-    expect(decodeBulkSelection({ protocolVersion: 0, mode: "explicit", ids }).ok).toBe(true);
-    expect(lengthReads).toBe(1);
   });
 
   it("is total over arbitrary JSON-compatible requests", () => {

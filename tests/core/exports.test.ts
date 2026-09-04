@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import * as publicApi from "../../src/index.js";
 
 describe("public runtime exports", () => {
-  it("matches the reviewed root entry point", () => {
+  it("exports only the documented runtime API", () => {
     expect(Object.keys(publicApi).sort()).toEqual([
       "DEFAULT_BULK_LIMITS",
       "DEFAULT_STATE_DECODE_LIMITS",

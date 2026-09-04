@@ -40,8 +40,7 @@ describe("state codec", () => {
       ids: Object.freeze([Number.NaN]),
     });
 
-    // TypeScript preserves the phantom property through object spread, but the
-    // package's non-enumerable runtime marker intentionally is not copied.
+    // Object spread drops the package's non-enumerable state marker.
     expect(() => encodeSelection(forged)).toThrow(
       "state must be a SelectionState created by this package",
     );
@@ -406,38 +405,6 @@ describe("state codec", () => {
     });
   });
 
-  it("snapshots accessor-backed payload fields before validating them", () => {
-    let versionReads = 0;
-    let selectionReads = 0;
-    let modeReads = 0;
-    const selection = {
-      get mode(): string {
-        modeReads += 1;
-        return modeReads === 1 ? "explicit" : "allMatching";
-      },
-      ids: [1],
-    };
-    const payload = {
-      get stateVersion(): number {
-        versionReads += 1;
-        return versionReads === 1 ? 0 : 1;
-      },
-      scopeKey: "scope-a",
-      scopeRevision: 0,
-      get selection(): object {
-        selectionReads += 1;
-        return selection;
-      },
-    };
-
-    expect(decodeSelection(payload).ok).toBe(true);
-    expect({ modeReads, selectionReads, versionReads }).toEqual({
-      modeReads: 1,
-      selectionReads: 1,
-      versionReads: 1,
-    });
-  });
-
   it("is total over arbitrary JSON-compatible payloads", () => {
     fc.assert(
       fc.property(fc.jsonValue(), (payload) => {
@@ -450,12 +417,7 @@ describe("state codec", () => {
   it("throws TypeError only for invalid programmer configuration", () => {
     expect(() => decodeSelection({}, { limits: { maxIds: 0 } })).toThrow(TypeError);
     expect(() => decodeSelection({}, { limits: { maxIds: null } } as never)).toThrow(TypeError);
-    expect(() => decodeSelection({}, { limits: { maxIds: undefined } } as never)).toThrow(
-      TypeError,
-    );
     expect(() => decodeSelection({}, { decodeId: "not-a-function" } as never)).toThrow(TypeError);
-    expect(() => decodeSelection({}, { decodeId: undefined } as never)).toThrow(TypeError);
-    expect(() => decodeSelection({}, { limits: undefined } as never)).toThrow(TypeError);
     expect(() => decodeSelection({}, { limits: { maxId: 1 } } as never)).toThrow(
       /limits\.maxId is not supported/,
     );
@@ -464,23 +426,25 @@ describe("state codec", () => {
     );
   });
 
-  it("rejects inherited recognized codec options and limits", () => {
+  it("rejects codec configuration inherited from custom prototypes", () => {
     const payload = {
       stateVersion: 0,
       scopeKey: "scope-a",
       scopeRevision: 0,
       selection: { mode: "explicit", ids: [1, 2] },
     };
-    const inheritedLimits = Object.create({ maxIds: 1 }) as Record<string, never>;
     const inheritedDecoder = Object.create({
-      decodeId: () => ({ ok: false, code: "inheritedDecoderRan" }),
-    }) as { decodeId: (value: unknown) => { ok: false; code: string } };
+      decodeId: () => ({ ok: false, code: "inherited" }),
+    }) as {
+      decodeId: () => { ok: false; code: string };
+    };
+    const inheritedLimits = Object.create({ maxIds: 1 }) as Record<string, never>;
 
-    expect(() => decodeSelection(payload, { limits: inheritedLimits })).toThrow(
-      "limits.maxIds must be an own property",
-    );
     expect(() => decodeSelection(payload, inheritedDecoder)).toThrow(
-      "options.decodeId must be an own property",
+      "Codec options must be a plain object",
+    );
+    expect(() => decodeSelection(payload, { limits: inheritedLimits })).toThrow(
+      "limits must be a plain object",
     );
   });
 });

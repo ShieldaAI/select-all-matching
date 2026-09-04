@@ -2,49 +2,58 @@
 
 Selection state for server-paginated tables.
 
-The library represents either a known list of selected IDs or every row in a server-defined scope except a short exclusion list. It never needs to load every matching ID into the browser.
+The library represents either a known list of selected IDs or every row in a server-defined scope
+except a short exclusion list. It never needs to load every matching ID into the browser.
 
 This repository is in early development and no npm package has been published.
 
-## Implemented so far
+## Current status
 
-- immutable empty, explicit, and all-matching states;
-- single-row and page-sized selection operations;
-- protection against stale scope events and reordered token refreshes;
-- scope-aware membership and page-checkbox reads;
-- draft persisted-state and bulk-request codecs with bounded, non-throwing decoding; and
-- a separate server entry point for decoding untrusted bulk requests.
+- Immutable empty, explicit, and all-matching states
+- Single-row and page-sized selection operations
+- Rejection of stale scope events and reordered token refreshes
+- Scope-aware membership and page-checkbox reads
+- Draft stored-state and bulk-request codecs with input limits
+- A separate server entry point for untrusted bulk requests
 
 ```ts
 import {
   emptySelection,
   selectAllMatching,
-  setIdsSelected,
+  setIdSelected,
   toBulkSelection,
 } from "select-all-matching";
 
 const empty = emptySelection("customers:active");
-const explicit = setIdsSelected(empty, {
-  context: { scopeKey: "customers:active", scopeRevision: 0 },
-  ids: ["customer-17", "customer-42"],
-  selected: true,
+const all = selectAllMatching(empty, {
+  scopeKey: "customers:active",
+  scopeRevision: 0,
+  scopeToken: "opaque-server-reference",
 });
 
-if (explicit.applied) {
-  const all = selectAllMatching(explicit.state, {
-    scopeKey: "customers:active",
-    scopeRevision: 0,
-    scopeToken: "opaque-server-reference",
+if (all.applied) {
+  const excluded = setIdSelected(all.state, {
+    context: { scopeKey: "customers:active", scopeRevision: 0 },
+    id: "customer-42",
+    selected: false,
   });
 
-  if (all.applied) {
-    const request = toBulkSelection(all.state);
-    // Send request.value in an authenticated bulk-action request when request.ok.
+  if (excluded.applied) {
+    const request = toBulkSelection(excluded.state);
+    if (request.ok && request.value) {
+      await fetch("/customers/archive", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(request.value),
+      });
+    }
   }
 }
 ```
 
-A scope token represents selection intent; it is not authorization. The server must resolve it from server-owned data and recheck the current user, tenant, operation, and affected rows before doing any work.
+A scope token represents selection intent; it is not authorization. The server must resolve it from
+server-owned data and recheck the current user, tenant, operation, and affected rows before doing
+any work.
 
 ## Development
 
@@ -58,4 +67,5 @@ npm run test:coverage
 
 Coverage is enforced at 90% statements/lines, 85% branches, and 95% functions.
 
-See the [project plan](./docs/PROJECT_PLAN.md), [technical specification](./docs/TECHNICAL_SPEC.md), and [versioning policy](./docs/versioning.md) for the remaining work and current draft contracts.
+The [technical design](./docs/TECHNICAL_SPEC.md) covers scope behavior, the draft wire format, and
+the server trust boundary. Compatibility rules are in [versioning.md](./docs/versioning.md).

@@ -8,10 +8,8 @@ Notable changes to this project will be recorded here. The format follows
 
 ### Added
 
-- Initial TypeScript, test, lint, format, package-validation, and Node 22/24 CI foundation.
-- Immutable selection state, scoped transitions, token compare-and-set, and indexed reads.
-- Draft version-0 state and bulk codecs with bounded server-side decoding.
-- Unit, property, concurrency, parser-totality, and packed-consumer tests.
-- Project planning and candidate technical contract for later adapters and server coordination.
+- Immutable selection state with scoped mutations, token refresh, and indexed reads.
+- Draft version-0 state and bulk codecs with server-side validation.
+- Initial Node 22/24 setup, automated tests, and packed-package checks.
 
 [Unreleased]: https://github.com/ShieldaAI/select-all-matching/commits/main

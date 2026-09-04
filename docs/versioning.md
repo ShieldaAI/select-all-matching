@@ -24,55 +24,33 @@ compatibility promises until they ship.
 
 ## Protocol versions
 
-Bulk requests carry `protocolVersion`. Draft protocol version `0` is limited to prereleases and has
-no long-term compatibility promise. Protocol version `1` will not be assigned until the server
-decoder, authorization-boundary tests, packed client/server fixtures, and external beta feedback
-support freezing the shape.
+Bulk requests carry `protocolVersion`. Draft protocol version `0` is prerelease-only and may
+change. Protocol version `1` will be the first stable wire format.
 
-Once a stable protocol version ships:
-
-1. Deploy a server decoder before any client can emit that version.
-2. Keep the package-major default encoder on its baseline stable version.
-3. Make a newer encoder target an explicit option until the next package major.
-4. Keep permanent golden fixtures for every stable protocol version.
-5. Support decoding a stable version for the remainder of the package major in which it shipped.
-
-Changing the default encoder target or removing a stable decoder requires a package-major release.
-This policy allows clients and servers to roll out independently without assuming they update at
-the same time.
+For a new stable version, deploy the server decoder before clients can emit it. The default encoder
+stays on the package major's baseline version; newer formats are explicit opt-ins. Stable formats
+keep permanent fixtures and decoder support for that package major. Changing the default encoder or
+removing a stable decoder requires a package-major release.
 
 ## Persisted-state versions
 
-If persisted selection encoding ships, it carries `stateVersion` rather than `protocolVersion`.
-Draft state version `0` has the same prerelease-only status. A stable state decoder remains
-available for its package major, and migrations are documented when a real migration exists.
+Persisted selections carry `stateVersion` rather than `protocolVersion`. Draft state version `0`
+has the same prerelease-only status. A stable state decoder remains available for its package
+major, and migrations are documented when a real migration exists.
 
 Runtime state objects are not a storage format. Do not serialize them by accident or depend on
 their property layout; use the versioned encoder when one is provided.
 
 ## Runtime and toolchain support
 
-The initial runtime target is unbundled ESM at ES2022. The only claimed runtime majors are Node 22
-and Node 24. Required CI runs a packed package on their exact `.0.0` minima and on their latest
-available releases; no other Node major is claimed. Build tools can require a newer patch release
-than the emitted library requires.
+The initial runtime target is unbundled ESM at ES2022. The supported runtime majors are Node 22 and
+Node 24. Build tools may require a newer patch release than the emitted library.
 
-Only versions exercised by required or nightly CI appear in the public support matrix. After 1.0,
-dropping a supported Node, React, or table-adapter range is a package-major change unless that range
-was explicitly marked experimental. Maintainers aim to announce a support drop one minor release
-or 90 days ahead when practical.
+Only versions exercised in CI are claimed as supported. After 1.0, dropping a supported Node,
+React, or table-adapter range is a package-major change unless that range was marked experimental.
 
-TypeScript compatibility is proven from the declarations in the packed tarball, not inferred from
-the compiler used to build the repository. A TypeScript minimum will be advertised only after those
-consumer fixtures exist.
+TypeScript compatibility is tested from the declarations in the packed tarball. A minimum version
+will be advertised only after those consumer fixtures exist.
 
-## Release artifacts
-
-A candidate artifact for each package version is built once as an npm tarball, hashed, installed
-into every release fixture, and validated with Publint and Are the Types Wrong. After approval,
-that same versioned tarball is published with provenance; it is not rebuilt during publication.
-The `0.9.0-rc.0` and `1.0.0` tarballs are distinct: after the stable version bump, the new `1.0.0`
-artifact runs the complete release-candidate suite before it can be published unchanged.
-
-Every release records user-visible changes in `CHANGELOG.md`. Stable protocol fixtures, support
-matrix changes, and migration instructions are release artifacts when applicable.
+Every release records visible changes in `CHANGELOG.md`. Stable protocol fixtures, support-matrix
+changes, and migration instructions are included when relevant.

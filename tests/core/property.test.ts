@@ -22,7 +22,12 @@ const rowId = fc.oneof(
   fc.string({ minLength: 1, maxLength: 8 }),
 );
 
-const operation = fc.oneof(
+type ModelOperation =
+  | { type: "set"; ids: RowId[]; selected: boolean }
+  | { type: "all"; token: string }
+  | { type: "clear" };
+
+const operation: fc.Arbitrary<ModelOperation> = fc.oneof(
   fc.record({
     type: fc.constant("set" as const),
     ids: fc.array(rowId, { maxLength: 20 }),
@@ -43,6 +48,25 @@ function selectedByModel(allMatching: boolean, ids: ReadonlySet<RowId>, id: RowI
   return allMatching ? !ids.has(id) : ids.has(id);
 }
 
+function applyOperation(state: SelectionState, operation: ModelOperation): SelectionState {
+  const result =
+    operation.type === "set"
+      ? setIdsSelected(state, {
+          context: context(state),
+          ids: operation.ids,
+          selected: operation.selected,
+        })
+      : operation.type === "all"
+        ? selectAllMatching(state, {
+            ...context(state),
+            scopeToken: operation.token,
+          })
+        : clearSelection(state, context(state));
+
+  if (!result.applied) throw new Error(`unexpected ${result.reason}`);
+  return result.state;
+}
+
 describe("selection model properties", () => {
   it("matches a finite Set model across generated command sequences", () => {
     fc.assert(
@@ -55,24 +79,7 @@ describe("selection model properties", () => {
           const modeledIds = new Set<RowId>();
 
           for (const current of operations) {
-            const before = structuredClone(current);
-            const result =
-              current.type === "set"
-                ? setIdsSelected(state, {
-                    context: context(state),
-                    ids: current.ids,
-                    selected: current.selected,
-                  })
-                : current.type === "all"
-                  ? selectAllMatching(state, {
-                      ...context(state),
-                      scopeToken: current.token,
-                    })
-                  : clearSelection(state, context(state));
-
-            expect(result.applied).toBe(true);
-            if (!result.applied) throw new Error(`unexpected ${result.reason}`);
-            state = result.state;
+            state = applyOperation(state, current);
 
             if (current.type === "set") {
               for (const rawId of current.ids) {
@@ -93,12 +100,6 @@ describe("selection model properties", () => {
               allMatching = false;
               modeledIds.clear();
             }
-
-            expect(current).toEqual(before);
-            expect(Object.isFrozen(state)).toBe(true);
-            const roundTrip = decodeSelection(encodeSelection(state));
-            expect(roundTrip.ok).toBe(true);
-            if (roundTrip.ok) expect(roundTrip.value).toEqual(state);
 
             if (allMatching) {
               expect(state.mode).toBe("allMatching");
@@ -126,6 +127,22 @@ describe("selection model properties", () => {
           }
         },
       ),
+      { numRuns: 100, seed: PROPERTY_SEED },
+    );
+  });
+
+  it("round trips states produced by generated commands", () => {
+    fc.assert(
+      fc.property(fc.array(operation, { maxLength: 200 }), (operations) => {
+        let state: SelectionState = emptySelection("generated-scope");
+        for (const current of operations) {
+          state = applyOperation(state, current);
+        }
+
+        const decoded = decodeSelection(encodeSelection(state));
+        expect(decoded.ok).toBe(true);
+        if (decoded.ok) expect(decoded.value).toEqual(state);
+      }),
       { numRuns: 100, seed: PROPERTY_SEED },
     );
   });

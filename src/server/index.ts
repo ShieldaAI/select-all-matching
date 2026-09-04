@@ -1,6 +1,5 @@
-export { decodeBulkSelection } from "./decoder.js";
-
 export {
+  decodeBulkSelection,
   DEFAULT_BULK_LIMITS,
   type BulkDecodeOptions,
   type BulkLimits,
