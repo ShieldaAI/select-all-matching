@@ -34,13 +34,20 @@ function appliedState<Id extends RowId>(
 describe("state codec", () => {
   it("rejects structurally forged states instead of serializing broken invariants", () => {
     const valid = emptySelection<number>("scope-a");
-    const forged = Object.freeze({
+    const forged = {
       ...valid,
       mode: "explicit" as const,
       ids: Object.freeze([Number.NaN]),
-    });
+    };
 
-    // Object spread drops the package's non-enumerable state marker.
+    for (const symbol of Object.getOwnPropertySymbols(valid)) {
+      const descriptor = Object.getOwnPropertyDescriptor(valid, symbol);
+      if (descriptor !== undefined) {
+        Object.defineProperty(forged, symbol, descriptor);
+      }
+    }
+    Object.freeze(forged);
+
     expect(() => encodeSelection(forged)).toThrow(
       "state must be a SelectionState created by this package",
     );
@@ -412,6 +419,50 @@ describe("state codec", () => {
       }),
       { numRuns: 200, seed: PROPERTY_SEED },
     );
+  });
+
+  it("does not read missing IDs or field names from array prototypes", () => {
+    const inheritedIds = new Array(1);
+    Object.setPrototypeOf(inheritedIds, { 0: "inherited-id" });
+
+    expect(
+      decodeSelection({
+        stateVersion: 0,
+        scopeKey: "scope-a",
+        scopeRevision: 0,
+        selection: { mode: "explicit", ids: inheritedIds },
+      }),
+    ).toEqual({
+      ok: false,
+      error: { code: "missingField", path: "$.selection.ids[0]" },
+    });
+
+    const descriptor = Object.getOwnPropertyDescriptor(Array.prototype, "0");
+    let result: ReturnType<typeof decodeSelection> | undefined;
+    try {
+      Object.defineProperty(Array.prototype, "0", {
+        configurable: true,
+        value: "polluted",
+        writable: true,
+      });
+      result = decodeSelection({
+        stateVersion: 0,
+        scopeKey: "scope-a",
+        scopeRevision: 0,
+        selection: { mode: "empty" },
+      });
+    } finally {
+      if (descriptor === undefined) {
+        Reflect.deleteProperty(Array.prototype, "0");
+      } else {
+        Object.defineProperty(Array.prototype, "0", descriptor);
+      }
+    }
+
+    expect(result).toEqual({
+      ok: true,
+      value: emptySelection("scope-a"),
+    });
   });
 
   it("throws TypeError only for invalid programmer configuration", () => {

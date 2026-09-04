@@ -20,6 +20,7 @@ const attwCli = join(
   "index.js",
 );
 const typescriptCli = join(repositoryRoot, "node_modules", "typescript", "bin", "tsc");
+const minimumTypescriptCli = join(repositoryRoot, "node_modules", "typescript-5-4", "bin", "tsc");
 const consumerFixture = join(repositoryRoot, "scripts", "fixtures", "packed-consumer");
 const temporaryRoot = await mkdtemp(join(tmpdir(), "select-all-matching-pack-"));
 const artifactDirectory = join(temporaryRoot, "artifact");
@@ -55,7 +56,9 @@ try {
   await mkdir(artifactDirectory);
   await cp(consumerFixture, consumerDirectory, { recursive: true });
 
-  await runNpm(["run", "build"], { cwd: repositoryRoot });
+  await run(process.execPath, [join(repositoryRoot, "scripts", "clean.mjs")], {
+    cwd: repositoryRoot,
+  });
   const { stdout: packOutput } = await runNpm(
     ["pack", "--json", "--pack-destination", artifactDirectory],
     { cwd: repositoryRoot },
@@ -127,6 +130,9 @@ try {
   });
   await run(process.execPath, ["verify.mjs"], { cwd: consumerDirectory });
   await run(process.execPath, [typescriptCli, "-p", "tsconfig.json"], {
+    cwd: consumerDirectory,
+  });
+  await run(process.execPath, [minimumTypescriptCli, "-p", "tsconfig.json"], {
     cwd: consumerDirectory,
   });
   process.stdout.write(`Packed artifact and consumers passed for ${packResult[0].filename}\n`);

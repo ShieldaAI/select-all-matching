@@ -6,6 +6,12 @@ type CustomerId = string & { readonly [customerIdBrand]: true };
 
 const customerId = "cus_1" as CustomerId;
 const state = emptySelection<CustomerId>("customers");
+declare function acceptsStringState(
+  value: import("select-all-matching").SelectionState<string>,
+): void;
+
+// @ts-expect-error -- branded state cannot be widened to accept plain strings
+acceptsStringState(state);
 
 if (state.mode === "empty") {
   setIdSelected(state, {

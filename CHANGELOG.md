@@ -12,4 +12,14 @@ Notable changes to this project will be recorded here. The format follows
 - Draft version-0 state and bulk codecs with server-side validation.
 - Initial Node 22/24 setup, automated tests, and packed-package checks.
 
+### Changed
+
+- Repeated select-all commands are idempotent and no longer erase newer exclusions.
+
+### Fixed
+
+- Branded ID states no longer widen to a base string or number type.
+- Forged runtime states, sparse ID lists, and inherited array values are rejected at input
+  boundaries.
+
 [Unreleased]: https://github.com/ShieldaAI/select-all-matching/commits/main

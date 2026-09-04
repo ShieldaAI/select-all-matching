@@ -16,6 +16,10 @@ type CustomerId = string & { readonly [customerIdBrand]: true };
 const customerId = "cus_1" as CustomerId;
 const customerState = emptySelection<CustomerId>("customers");
 declare function acceptsNumberState(state: SelectionState<number>): void;
+declare function acceptsStringState(state: SelectionState<string>): void;
+
+// @ts-expect-error -- A branded state cannot be widened and filled with plain strings.
+acceptsStringState(customerState);
 
 if (customerState.mode === "empty") {
   setIdSelected(customerState, {

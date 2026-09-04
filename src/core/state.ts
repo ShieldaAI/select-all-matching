@@ -11,7 +11,6 @@ import type {
   TransitionFailureReason,
   TransitionResult,
 } from "./types.js";
-import { normalizedSelection } from "./types.js";
 import {
   assertBoolean,
   assertNonEmptyString,
@@ -21,6 +20,8 @@ import {
   normalizeRowIds,
   normalizeScopeRevision,
 } from "./validation.js";
+
+const packageStates = new WeakSet<object>();
 
 export type NormalizedSelectionInput<Id extends RowId = RowId> =
   | Readonly<{
@@ -59,13 +60,9 @@ function freezeState<Id extends RowId>(
         excludedIds: readonly Id[];
       },
 ): SelectionState<Id> {
-  Object.defineProperty(value, normalizedSelection, {
-    configurable: false,
-    enumerable: false,
-    value: true,
-    writable: false,
-  });
-  return Object.freeze(value) as SelectionState<Id>;
+  const state = Object.freeze(value) as SelectionState<Id>;
+  packageStates.add(state);
+  return state;
 }
 
 export function assertNormalizedSelection<Id extends RowId>(
@@ -76,8 +73,7 @@ export function assertNormalizedSelection<Id extends RowId>(
     typeof value !== "object" ||
     value === null ||
     !Object.isFrozen(value) ||
-    !Object.prototype.hasOwnProperty.call(value, normalizedSelection) ||
-    (value as { [normalizedSelection]?: unknown })[normalizedSelection] !== true
+    !packageStates.has(value)
   ) {
     throw new TypeError(`${name} must be a SelectionState created by this package`);
   }
@@ -256,18 +252,7 @@ function applySelectAllMatching<Id extends RowId>(
   }
 
   if (state.mode === "allMatching") {
-    if (state.excludedIds.length === 0) {
-      return applied(state);
-    }
-
-    return applied(
-      allMatchingAt(
-        state.scopeKey,
-        state.scopeRevision,
-        state.scopeToken,
-        Object.freeze([] as Id[]),
-      ),
-    );
+    return applied(state);
   }
 
   return applied(

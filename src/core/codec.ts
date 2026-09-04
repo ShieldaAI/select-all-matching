@@ -160,9 +160,12 @@ function exactFields(
   }
 
   const expectedSet = new Set(expected);
-  const extra = Object.keys(value)
-    .filter((field) => !expectedSet.has(field))
-    .sort()[0];
+  let extra: string | undefined;
+  for (const field of Object.keys(value)) {
+    if (!expectedSet.has(field) && (extra === undefined || field < extra)) {
+      extra = field;
+    }
+  }
 
   return extra === undefined
     ? { ok: true, value: true }
@@ -220,9 +223,12 @@ function assertOnlyOptionFields(
   if (value === undefined) return;
 
   const allowedSet = new Set(allowed);
-  const extra = Object.keys(value)
-    .filter((field) => !allowedSet.has(field))
-    .sort()[0];
+  let extra: string | undefined;
+  for (const field of Object.keys(value)) {
+    if (!allowedSet.has(field) && (extra === undefined || field < extra)) {
+      extra = field;
+    }
+  }
   if (extra !== undefined) {
     throw new TypeError(`${name}.${extra} is not supported`);
   }
@@ -409,6 +415,9 @@ function decodeIdList<Id extends RowId>(
   const ids: Id[] = [];
 
   for (let index = 0; index < length; index += 1) {
+    if (!hasOwn(input, String(index))) {
+      return error("missingField", `${path}[${index}]`);
+    }
     const decoded = decodeWireId(
       input[index],
       `${path}[${index}]`,

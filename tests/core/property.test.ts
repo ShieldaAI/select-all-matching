@@ -10,10 +10,12 @@ import {
   isIdSelected,
   selectAllMatching,
   setIdsSelected,
+  toBulkSelection,
   type RowId,
   type SelectionContext,
   type SelectionState,
 } from "../../src/index.js";
+import { decodeBulkSelection } from "../../src/server/index.js";
 
 const PROPERTY_SEED = 0x5e1ec7;
 
@@ -40,7 +42,7 @@ const operation: fc.Arbitrary<ModelOperation> = fc.oneof(
   fc.record({ type: fc.constant("clear" as const) }),
 );
 
-function context(state: SelectionState): SelectionContext {
+function context<Id extends RowId>(state: SelectionState<Id>): SelectionContext {
   return { scopeKey: state.scopeKey, scopeRevision: state.scopeRevision };
 }
 
@@ -94,8 +96,10 @@ describe("selection model properties", () => {
                 }
               }
             } else if (current.type === "all") {
-              allMatching = true;
-              modeledIds.clear();
+              if (!allMatching) {
+                allMatching = true;
+                modeledIds.clear();
+              }
             } else {
               allMatching = false;
               modeledIds.clear();
@@ -143,6 +147,34 @@ describe("selection model properties", () => {
         expect(decoded.ok).toBe(true);
         if (decoded.ok) expect(decoded.value).toEqual(state);
       }),
+      { numRuns: 100, seed: PROPERTY_SEED },
+    );
+  });
+
+  it("round trips generated bulk requests through the server decoder", () => {
+    fc.assert(
+      fc.property(
+        fc.array(rowId, { minLength: 1, maxLength: 100 }),
+        fc.boolean(),
+        (ids, allMatching) => {
+          const initial = emptySelection("scope");
+          const base = allMatching
+            ? selectAllMatching(initial, { ...context(initial), scopeToken: "token" })
+            : { applied: true as const, state: initial };
+          if (!base.applied) throw new Error("expected setup to apply");
+          const selected = setIdsSelected(base.state, {
+            context: context(base.state),
+            ids,
+            selected: !allMatching,
+          });
+          if (!selected.applied) throw new Error("expected setup to apply");
+
+          const bulk = toBulkSelection(selected.state);
+          expect(bulk.ok).toBe(true);
+          if (!bulk.ok || bulk.value === null) throw new Error("expected a bulk request");
+          expect(decodeBulkSelection(bulk.value)).toEqual({ ok: true, value: bulk.value });
+        },
+      ),
       { numRuns: 100, seed: PROPERTY_SEED },
     );
   });

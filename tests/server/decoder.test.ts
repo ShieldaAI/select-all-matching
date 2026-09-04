@@ -173,6 +173,16 @@ describe("decodeBulkSelection", () => {
     });
   });
 
+  it("rejects holes even when an array prototype supplies an ID", () => {
+    const ids = new Array(1);
+    Object.setPrototypeOf(ids, { 0: "inherited-id" });
+
+    expect(decodeBulkSelection({ protocolVersion: 0, mode: "explicit", ids })).toEqual({
+      ok: false,
+      error: { code: "missingField", path: "$.ids[0]" },
+    });
+  });
+
   it("turns decoder exceptions and malformed output into invalid-ID errors", () => {
     const payload = { protocolVersion: 0, mode: "explicit", ids: ["id"] };
 

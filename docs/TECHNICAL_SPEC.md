@@ -26,9 +26,13 @@ type SelectionState<Id extends string | number> =
     };
 ```
 
-The public type also carries internal markers used to preserve the `Id` type and to distinguish
-states created by the package. Package states are frozen. The marker protects state invariants; it
-is not an authorization or security boundary.
+The public type also carries type-only markers used to preserve the `Id` type. At runtime, the
+package tracks the states it creates and freezes them. This protects state invariants; it is not an
+authorization or security boundary.
+
+Runtime states belong to the loaded package instance that created them. Before sending state to a
+worker, another JavaScript realm, or a separately installed copy of the package, encode it; decode
+it on the other side.
 
 Terms used below:
 
@@ -96,13 +100,15 @@ context, the token it expects, and the replacement token.
 - A matching token is replaced without changing exclusions.
 - Empty and explicit states do not store a token, so a same-context refresh is a no-op.
 
-Calling `selectAllMatching` again clears exclusions but keeps the token already held by an
-all-matching state. This stops an old select-all event from replacing a newer token.
+Calling `selectAllMatching` while already in all-matching mode is an idempotent no-op. This keeps a
+replayed token response from erasing exclusions added after the request began. To intentionally
+include every excluded row again, pass the current `excludedIds` to `setIdsSelected` with
+`selected: true`.
 
 Token requests made before all-matching state exists are an application concern. When tokens are
 loaded lazily, tie each request to the rendered context and discard it if the query changes, a newer
-request wins, or the user cancels the action. A stale response should never reach
-`selectAllMatching`.
+request wins, the user cancels the action, or the selection state is no longer the same object from
+which the request began. A stale response should never reach `selectAllMatching`.
 
 ## Mutations
 
@@ -295,9 +301,9 @@ The root contains the state machine, reads, state codec, and bulk conversion. `/
 untrusted bulk decoder. The core has no runtime dependencies, network calls, telemetry, DOM access,
 or global registration.
 
-The build is unbundled ESM targeting ES2022. Node 22 and 24 are the current runtime targets. A
-TypeScript floor and framework peer ranges will only be documented after packed consumer fixtures
-prove them.
+The build is unbundled ESM targeting ES2022. Node 22 and 24 are the current runtime targets. The
+packed declarations are tested with TypeScript 5.4 and the current project compiler. There are no
+framework peer dependencies yet.
 
 ## Performance and tests
 

@@ -11,7 +11,7 @@ export type AllMatchingScope = Readonly<{
   scopeToken: string;
 }>;
 
-export const normalizedSelection: unique symbol = Symbol("normalizedSelection");
+declare const normalizedSelection: unique symbol;
 declare const selectionIdType: unique symbol;
 
 export type SelectionState<Id extends RowId = RowId> = (
@@ -35,7 +35,7 @@ export type SelectionState<Id extends RowId = RowId> = (
     }>
 ) & {
   readonly [normalizedSelection]: true;
-  readonly [selectionIdType]?: Id;
+  readonly [selectionIdType]?: (id: Id) => Id;
 };
 
 export type SetIdsSelectedCommand<Id extends RowId = RowId> = Readonly<{

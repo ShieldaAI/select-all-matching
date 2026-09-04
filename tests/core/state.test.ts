@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   applySelectionCommand,
   clearSelection,
+  decodeSelection,
   emptySelection,
   reconcileScope,
   refreshScopeToken,
@@ -14,7 +15,7 @@ import {
   type SelectionState,
 } from "../../src/index.js";
 
-function context(state: SelectionState): SelectionContext {
+function context<Id extends RowId>(state: SelectionState<Id>): SelectionContext {
   return { scopeKey: state.scopeKey, scopeRevision: state.scopeRevision };
 }
 
@@ -230,7 +231,7 @@ describe("selection state transitions", () => {
     expect(reselected.mode === "allMatching" && reselected.excludedIds).toEqual(["a", "1"]);
   });
 
-  it("clears exclusions on repeated select-all but preserves the current token", () => {
+  it("keeps later exclusions when select-all is repeated or replayed", () => {
     const initial = emptySelection("scope");
     const first = selectAllMatching(initial, {
       ...context(initial),
@@ -249,7 +250,16 @@ describe("selection state transitions", () => {
       scopeToken: "delayed-token-that-must-not-win",
     });
 
-    expect(repeated.applied && repeated.state).toMatchObject({
+    expect(repeated).toEqual({ applied: true, state: excluded.state });
+    expect(repeated.state).toBe(excluded.state);
+    if (repeated.state.mode !== "allMatching") throw new Error("expected all-matching state");
+
+    const reselected = setIdsSelected(repeated.state, {
+      context: context(repeated.state),
+      ids: repeated.state.excludedIds,
+      selected: true,
+    });
+    expect(reselected.applied && reselected.state).toMatchObject({
       mode: "allMatching",
       scopeToken: "old-token",
       excludedIds: [],
@@ -329,6 +339,23 @@ describe("scope lifecycle and concurrency", () => {
       state: secondA.state,
     });
     expect(delayed.state).toBe(secondA.state);
+  });
+
+  it("does not overflow the scope revision", () => {
+    const decoded = decodeSelection({
+      stateVersion: 0,
+      scopeKey: "A",
+      scopeRevision: Number.MAX_SAFE_INTEGER,
+      selection: { mode: "empty" },
+    });
+    if (!decoded.ok) throw new Error("expected valid stored state");
+
+    expect(() =>
+      reconcileScope(decoded.value, {
+        expected: context(decoded.value),
+        nextScopeKey: "B",
+      }),
+    ).toThrow("scopeRevision cannot be incremented beyond Number.MAX_SAFE_INTEGER");
   });
 
   it.each(["set", "selectAll", "refresh", "clear"] as const)(
@@ -412,7 +439,8 @@ describe("scope lifecycle and concurrency", () => {
       scopeToken: "token-1",
     });
 
-    expect(delayed.applied && delayed.state).toMatchObject({ scopeToken: "token-2" });
+    expect(delayed).toEqual({ applied: true, state: refreshed.state });
+    expect(delayed.state).toBe(refreshed.state);
   });
 
   it("lets a later token refresh win after a delayed repeated select-all", () => {
@@ -512,6 +540,16 @@ describe("public input validation and immutability", () => {
         selected: true,
       }),
     ).toThrow(TypeError);
+
+    const inheritedIds = new Array(1);
+    Object.setPrototypeOf(inheritedIds, { 0: "inherited-id" });
+    expect(() =>
+      setIdsSelected(state, {
+        context: context(state),
+        ids: inheritedIds,
+        selected: true,
+      }),
+    ).toThrow("command.ids[0] must be a non-empty string or safe integer");
   });
 
   it("never mutates frozen commands, contexts, states, or caller-owned arrays", () => {

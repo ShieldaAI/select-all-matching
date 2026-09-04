@@ -16,7 +16,7 @@ import {
 declare const accountIdBrand: unique symbol;
 type AccountId = string & { readonly [accountIdBrand]: true };
 
-function context(state: SelectionState): SelectionContext {
+function context<Id extends RowId>(state: SelectionState<Id>): SelectionContext {
   return { scopeKey: state.scopeKey, scopeRevision: state.scopeRevision };
 }
 
@@ -139,6 +139,27 @@ describe("indexed selection views", () => {
     expect(result.value.getPageSelection([])).toBe("noRows");
     expect(Object.isFrozen(result)).toBe(true);
     expect(Object.isFrozen(result.value)).toBe(true);
+  });
+
+  it("indexes empty and all-matching states", () => {
+    const empty = emptySelection("scope");
+    const emptyView = createSelectionView(empty, context(empty));
+    if (!emptyView.scopeMatches) throw new Error("expected scope match");
+    expect(emptyView.value.getPageSelection([1, 2])).toBe("none");
+
+    const all = selectAllMatching(empty, { ...context(empty), scopeToken: "token" });
+    if (!all.applied) throw new Error("expected select all to apply");
+    const configured = setIdsSelected(all.state, {
+      context: context(all.state),
+      ids: [2],
+      selected: false,
+    });
+    if (!configured.applied) throw new Error("expected exclusion to apply");
+    const allView = createSelectionView(configured.state, context(configured.state));
+    if (!allView.scopeMatches) throw new Error("expected scope match");
+
+    expect(allView.value.isIdSelected(1)).toBe(true);
+    expect(allView.value.isIdSelected(2)).toBe(false);
   });
 
   it("supports branded application IDs without losing their type", () => {

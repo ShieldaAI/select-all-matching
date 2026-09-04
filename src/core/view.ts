@@ -10,7 +10,7 @@ import type {
 import { assertNormalizedSelection } from "./state.js";
 import { normalizeContext, normalizeRowId, normalizeRowIds } from "./validation.js";
 
-function contextMatches(state: SelectionState, context: SelectionContext): boolean {
+function contextMatches(state: SelectionContext, context: SelectionContext): boolean {
   return state.scopeKey === context.scopeKey && state.scopeRevision === context.scopeRevision;
 }
 
@@ -115,14 +115,18 @@ export function getPageSelection<Id extends RowId>(
     return scopeMismatch();
   }
 
+  const indexedIds = new Set<RowId>(
+    state.mode === "explicit" ? state.ids : state.mode === "allMatching" ? state.excludedIds : [],
+  );
+
   const selected = (id: Id): boolean => {
     switch (state.mode) {
       case "empty":
         return false;
       case "explicit":
-        return state.ids.includes(id);
+        return indexedIds.has(id);
       case "allMatching":
-        return !state.excludedIds.includes(id);
+        return !indexedIds.has(id);
     }
   };
 

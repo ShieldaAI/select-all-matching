@@ -57,7 +57,12 @@ export function normalizeRowIds<Id extends RowId>(
   }
 
   for (let index = 0; index < length; index += 1) {
-    const id = normalizeRowId(values[index] as Id, `${name}[${String(index)}]`);
+    const value: Id | undefined = Object.hasOwn(values, index) ? (values[index] as Id) : undefined;
+    const itemName = `${name}[${String(index)}]`;
+    if (value === undefined) {
+      throw typeError(itemName, "a non-empty string or safe integer");
+    }
+    const id = normalizeRowId(value, itemName);
     if (!seen.has(id)) {
       seen.add(id);
       normalized.push(id);

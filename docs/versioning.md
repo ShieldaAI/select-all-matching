@@ -49,8 +49,8 @@ Node 24. Build tools may require a newer patch release than the emitted library.
 Only versions exercised in CI are claimed as supported. After 1.0, dropping a supported Node,
 React, or table-adapter range is a package-major change unless that range was marked experimental.
 
-TypeScript compatibility is tested from the declarations in the packed tarball. A minimum version
-will be advertised only after those consumer fixtures exist.
+TypeScript compatibility is tested from the declarations in the packed tarball. The minimum
+supported version is TypeScript 5.4.
 
 Every release records visible changes in `CHANGELOG.md`. Stable protocol fixtures, support-matrix
 changes, and migration instructions are included when relevant.
