@@ -56,11 +56,9 @@ try {
   await mkdir(artifactDirectory);
   await cp(consumerFixture, consumerDirectory, { recursive: true });
 
-  await run(process.execPath, [join(repositoryRoot, "scripts", "clean.mjs")], {
-    cwd: repositoryRoot,
-  });
+  await runNpm(["run", "build"], { cwd: repositoryRoot });
   const { stdout: packOutput } = await runNpm(
-    ["pack", "--json", "--pack-destination", artifactDirectory],
+    ["pack", "--json", "--ignore-scripts", "--pack-destination", artifactDirectory],
     { cwd: repositoryRoot },
   );
   const packResult = JSON.parse(packOutput);
