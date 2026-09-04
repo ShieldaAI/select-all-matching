@@ -1,0 +1,49 @@
+name: Publish prerelease
+
+on:
+  push:
+    tags:
+      - "v*-*"
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish to npm
+    if: github.repository == 'ShieldaAI/select-all-matching'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "24.0.0"
+          registry-url: "https://registry.npmjs.org"
+          package-manager-cache: false
+
+      - name: Install declared npm version
+        run: npm install --global npm@11.11.0
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check tag and package version
+        run: node --eval "const p = require('./package.json'); if ('v' + p.version !== process.env.GITHUB_REF_NAME) process.exit(1)"
+
+      - name: Run checks
+        run: npm run check
+
+      - name: Publish prerelease
+        run: npm publish --access public --tag next --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

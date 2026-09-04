@@ -1,7 +1,7 @@
 # Technical design
 
 This document describes the state machine and version-0 codecs that exist today. Version `0` is a
-draft and may change before the first release. Planned adapters and server helpers are not
+draft and may change before the first stable release. Planned adapters and server helpers are not
 specified here as finished APIs.
 
 ## Model

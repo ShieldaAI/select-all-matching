@@ -67,17 +67,18 @@ responses, token expiry, permission changes, and one harmless bulk action. It sh
 
 No example path may enumerate all matching IDs in the browser.
 
-## Before the first beta
+## Before a wider beta
 
 - Set the TypeScript, React, and TanStack support ranges from packed consumer tests.
 - Review the public API and generated declarations.
 - Add cross-tenant, cross-resource, cross-operation, expiry, and permission-revocation tests.
 - Write a short quick start and server integration guide.
 - Have someone unfamiliar with the code complete the main flow from the documentation.
-- Test the exact tarball and configure private vulnerability reporting before publishing.
+- Test the exact tarball and enable private vulnerability reporting before promoting the package
+  beyond the initial prerelease.
 
-The first public version would be `0.1.0-beta.0` on npm's `next` tag. It stays private until there
-is explicit approval to publish. [versioning.md](./versioning.md) contains the compatibility rules.
+The first public prerelease is `0.1.0-beta.0` on npm's `next` tag. It is intentionally experimental;
+[versioning.md](./versioning.md) contains the compatibility rules.
 
 ## Later, if users ask for it
 

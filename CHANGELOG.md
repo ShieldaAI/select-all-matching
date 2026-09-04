@@ -6,6 +6,8 @@ Notable changes to this project will be recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.1.0-beta.0] - 2026-09-04
+
 ### Added
 
 - Immutable selection state with scoped mutations, token refresh, and indexed reads.
@@ -22,4 +24,5 @@ Notable changes to this project will be recorded here. The format follows
 - Forged runtime states, sparse ID lists, and inherited array values are rejected at input
   boundaries.
 
-[Unreleased]: https://github.com/ShieldaAI/select-all-matching/commits/main
+[Unreleased]: https://github.com/ShieldaAI/select-all-matching/compare/v0.1.0-beta.0...HEAD
+[0.1.0-beta.0]: https://github.com/ShieldaAI/select-all-matching/tree/v0.1.0-beta.0

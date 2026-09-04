@@ -5,7 +5,13 @@ Selection state for server-paginated tables.
 The library represents either a known list of selected IDs or every row in a server-defined scope
 except a short exclusion list. It never needs to load every matching ID into the browser.
 
-This repository is in early development and no npm package has been published.
+The API and version-0 formats are prerelease and may change before the first stable version.
+
+## Install
+
+```sh
+npm install select-all-matching@next
+```
 
 ## Current status
 

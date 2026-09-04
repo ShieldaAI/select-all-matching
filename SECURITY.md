@@ -2,8 +2,7 @@
 
 ## Supported versions
 
-No releases have been published, so there are no supported versions yet. Reports against `main`
-are still welcome.
+The latest `0.1` prerelease and `main` receive security fixes. Older prereleases are unsupported.
 
 ## Reporting a vulnerability
 
