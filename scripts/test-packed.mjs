@@ -52,16 +52,25 @@ async function runNpm(arguments_, options) {
   });
 }
 
+function parsePackResult(output) {
+  const lines = output.split(/\r?\n/);
+  const jsonStart = lines.findIndex((line) => line.trimStart().startsWith("["));
+  if (jsonStart === -1) {
+    throw new Error("npm pack did not return a JSON result");
+  }
+  return JSON.parse(lines.slice(jsonStart).join("\n"));
+}
+
 try {
   await mkdir(artifactDirectory);
   await cp(consumerFixture, consumerDirectory, { recursive: true });
 
   await runNpm(["run", "build"], { cwd: repositoryRoot });
   const { stdout: packOutput } = await runNpm(
-    ["pack", "--json", "--ignore-scripts", "--pack-destination", artifactDirectory],
+    ["pack", "--json", "--ignore-scripts", "--silent", "--pack-destination", artifactDirectory],
     { cwd: repositoryRoot },
   );
-  const packResult = JSON.parse(packOutput);
+  const packResult = parsePackResult(packOutput);
 
   assert.equal(packResult.length, 1, "npm pack must produce exactly one artifact");
   assert.equal(typeof packResult[0]?.filename, "string", "npm pack did not report a filename");
