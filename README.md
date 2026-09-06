@@ -13,9 +13,8 @@ list of selected IDs or every row in a server-defined scope except a short exclu
 It is framework-agnostic, has no runtime dependencies, and never needs to load every matching ID
 into the browser.
 
-The next release is `1.0.0-rc.1`. It writes version-1 payloads and reads both version 1 and the
-original beta's version 0. The public npm package may still be an earlier prerelease; the command
-below installs the release currently on `next`.
+The current release candidate is `1.0.0-rc.1`, available on npm's `next` tag. It writes version-1
+payloads and reads both version 1 and the original beta's version 0. It is not stable 1.0 yet.
 
 ## Install
 

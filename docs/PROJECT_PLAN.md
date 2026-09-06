@@ -26,8 +26,9 @@ own application. Before declaring 1.0, run the RC through a real integration and
 changes that trial exposes. A second developer should be able to complete the main flow from the
 guides. There is no required star count, download count, or waiting period.
 
-The first release through npm's configured trusted publisher still needs to succeed. Private
-vulnerability reporting is enabled on GitHub; see the security policy for the reporting form.
+The [RC publish run](https://github.com/ShieldaAI/select-all-matching/actions/runs/34038534288)
+succeeded through npm's trusted publisher. Private vulnerability reporting is enabled on GitHub;
+see the security policy for the reporting form.
 
 ## Later
 
