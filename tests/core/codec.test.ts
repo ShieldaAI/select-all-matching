@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import fc from "fast-check";
 import { describe, expect, expectTypeOf, it } from "vitest";
 
@@ -32,6 +33,52 @@ function appliedState<Id extends RowId>(
 }
 
 describe("state codec", () => {
+  it("preserves the version 1 storage fixtures through JSON", () => {
+    const fixtures = JSON.parse(
+      readFileSync(new URL("./fixtures/state-v1.json", import.meta.url), "utf8"),
+    ) as unknown[];
+
+    for (const fixture of fixtures) {
+      const decoded = valueOf(decodeSelection(fixture));
+      expect(JSON.parse(JSON.stringify(encodeSelection(decoded)))).toEqual(fixture);
+    }
+  });
+
+  it("migrates beta state when it is decoded and encoded again", () => {
+    for (const selection of [
+      { mode: "empty" },
+      { mode: "explicit", ids: [1, "1"] },
+      { mode: "allMatching", scopeToken: "opaque", excludedIds: [2] },
+    ]) {
+      const draft = {
+        stateVersion: 0,
+        scopeKey: "customers:active",
+        scopeRevision: 7,
+        selection,
+      };
+      expect(encodeSelection(valueOf(decodeSelection(draft)))).toEqual({
+        ...draft,
+        stateVersion: 1,
+      });
+    }
+  });
+
+  it("restores package ownership after structured clone through encode/decode", () => {
+    const state = appliedState(
+      setIdsSelected(emptySelection("customers:active"), {
+        context: { scopeKey: "customers:active", scopeRevision: 0 },
+        ids: [1, "1"],
+        selected: true,
+      }),
+    );
+
+    expect(() => toBulkSelection(structuredClone(state))).toThrow(TypeError);
+    expect(() => toBulkSelection(Object.freeze(structuredClone(state)))).toThrow(TypeError);
+
+    const cloned = valueOf(decodeSelection(structuredClone(encodeSelection(state))));
+    expect(toBulkSelection(cloned)).toEqual(toBulkSelection(state));
+  });
+
   it("rejects structurally forged states instead of serializing broken invariants", () => {
     const valid = emptySelection<number>("scope-a");
     const forged = {
@@ -56,7 +103,7 @@ describe("state codec", () => {
     );
   });
 
-  it("round trips each state mode with a separate draft state version", () => {
+  it("round trips each state mode with a separate state version", () => {
     const empty = emptySelection("customers:v1");
     const explicit = appliedState(
       setIdsSelected(empty, {
@@ -82,12 +129,12 @@ describe("state codec", () => {
 
     for (const state of [empty, explicit, excluded]) {
       const encoded = encodeSelection(state);
-      expect(encoded.stateVersion).toBe(0);
-      expect(valueOf(decodeSelection(encoded))).toEqual(state);
+      expect(encoded.stateVersion).toBe(1);
+      expect(valueOf(decodeSelection(JSON.parse(JSON.stringify(encoded))))).toEqual(state);
     }
 
     expect(encodeSelection(explicit)).toEqual({
-      stateVersion: 0,
+      stateVersion: 1,
       scopeKey: "customers:v1",
       scopeRevision: 0,
       selection: { mode: "explicit", ids: [1, "1", 0, "alpha"] },
@@ -118,7 +165,7 @@ describe("state codec", () => {
   it("decodes an arbitrary valid scope revision into frozen normalized state", () => {
     const decoded = valueOf(
       decodeSelection({
-        stateVersion: 0,
+        stateVersion: 1,
         scopeKey: "scope-a",
         scopeRevision: 42,
         selection: { mode: "explicit", ids: [-0, "row"] },
@@ -140,7 +187,7 @@ describe("state codec", () => {
     const rawUuid = "550e8400-e29b-41d4-a716-446655440000";
     const decoded = decodeSelection(
       {
-        stateVersion: 0,
+        stateVersion: 1,
         scopeKey: "scope-a",
         scopeRevision: 0,
         selection: { mode: "explicit", ids: [rawUuid] },
@@ -161,7 +208,7 @@ describe("state codec", () => {
   it("reports a typed decoder rejection without echoing the rejected value", () => {
     const decoded = decodeSelection(
       {
-        stateVersion: 0,
+        stateVersion: 1,
         scopeKey: "scope-a",
         scopeRevision: 0,
         selection: { mode: "explicit", ids: ["not-a-number"] },
@@ -188,7 +235,7 @@ describe("state codec", () => {
 
   it("omits unsafe application decoder codes", () => {
     const payload = {
-      stateVersion: 0,
+      stateVersion: 1,
       scopeKey: "scope-a",
       scopeRevision: 0,
       selection: { mode: "explicit", ids: ["payload-derived-code"] },
@@ -215,7 +262,7 @@ describe("state codec", () => {
   it("catches a custom decoder exception as a payload error", () => {
     const decoded = decodeSelection(
       {
-        stateVersion: 0,
+        stateVersion: 1,
         scopeKey: "scope-a",
         scopeRevision: 0,
         selection: { mode: "explicit", ids: ["row"] },
@@ -236,7 +283,7 @@ describe("state codec", () => {
   it("preserves number/string identity and rejects duplicates after decoding", () => {
     expect(
       decodeSelection({
-        stateVersion: 0,
+        stateVersion: 1,
         scopeKey: "scope-a",
         scopeRevision: 0,
         selection: { mode: "explicit", ids: [1, "1"] },
@@ -245,7 +292,7 @@ describe("state codec", () => {
 
     expect(
       decodeSelection({
-        stateVersion: 0,
+        stateVersion: 1,
         scopeKey: "scope-a",
         scopeRevision: 0,
         selection: { mode: "explicit", ids: [-0, 0] },
@@ -257,7 +304,7 @@ describe("state codec", () => {
 
     const transformed = decodeSelection(
       {
-        stateVersion: 0,
+        stateVersion: 1,
         scopeKey: "scope-a",
         scopeRevision: 0,
         selection: { mode: "explicit", ids: ["A", "a"] },
@@ -279,7 +326,7 @@ describe("state codec", () => {
   it("uses the documented deterministic validation order", () => {
     expect(
       decodeSelection({
-        stateVersion: 1,
+        stateVersion: 2,
         extra: true,
       }),
     ).toEqual({
@@ -289,7 +336,7 @@ describe("state codec", () => {
 
     expect(
       decodeSelection({
-        stateVersion: 0,
+        stateVersion: 1,
         scopeRevision: 0,
         selection: { mode: "empty" },
         zExtra: true,
@@ -301,7 +348,7 @@ describe("state codec", () => {
 
     expect(
       decodeSelection({
-        stateVersion: 0,
+        stateVersion: 1,
         scopeKey: "scope-a",
         scopeRevision: 0,
         selection: { mode: "explicit", ids: [], surprise: true },
@@ -317,7 +364,7 @@ describe("state codec", () => {
     expect(
       decodeSelection(
         {
-          stateVersion: 0,
+          stateVersion: 1,
           scopeKey: 123,
           scopeRevision: 0,
           selection: { mode: "explicit", ids: [false, false] },
@@ -331,7 +378,7 @@ describe("state codec", () => {
 
     expect(
       decodeSelection({
-        stateVersion: 0,
+        stateVersion: 1,
         scopeKey: "scope-a",
         scopeRevision: 0,
         selection: { mode: "explicit", ids: ["same", "same", false] },
@@ -344,7 +391,7 @@ describe("state codec", () => {
 
   it("enforces exact UTF-8 byte limits", () => {
     const payload = {
-      stateVersion: 0,
+      stateVersion: 1,
       scopeKey: "é",
       scopeRevision: 0,
       selection: { mode: "explicit", ids: ["😀"] },
@@ -368,7 +415,7 @@ describe("state codec", () => {
   it("rejects empty explicit state and unknown fields", () => {
     expect(
       decodeSelection({
-        stateVersion: 0,
+        stateVersion: 1,
         scopeKey: "scope-a",
         scopeRevision: 0,
         selection: { mode: "explicit", ids: [] },
@@ -383,7 +430,7 @@ describe("state codec", () => {
 
     expect(
       decodeSelection({
-        stateVersion: 0,
+        stateVersion: 1,
         scopeKey: "scope-a",
         scopeRevision: 0,
         selection: { mode: "empty" },
@@ -427,7 +474,7 @@ describe("state codec", () => {
 
     expect(
       decodeSelection({
-        stateVersion: 0,
+        stateVersion: 1,
         scopeKey: "scope-a",
         scopeRevision: 0,
         selection: { mode: "explicit", ids: inheritedIds },
@@ -446,7 +493,7 @@ describe("state codec", () => {
         writable: true,
       });
       result = decodeSelection({
-        stateVersion: 0,
+        stateVersion: 1,
         scopeKey: "scope-a",
         scopeRevision: 0,
         selection: { mode: "empty" },
@@ -479,7 +526,7 @@ describe("state codec", () => {
 
   it("rejects codec configuration inherited from custom prototypes", () => {
     const payload = {
-      stateVersion: 0,
+      stateVersion: 1,
       scopeKey: "scope-a",
       scopeRevision: 0,
       selection: { mode: "explicit", ids: [1, 2] },
@@ -521,12 +568,12 @@ describe("bulk conversion", () => {
     expect(toBulkSelection(empty)).toEqual({ ok: true, value: null });
     expect(toBulkSelection(explicit)).toEqual({
       ok: true,
-      value: { protocolVersion: 0, mode: "explicit", ids: [1, "1"] },
+      value: { protocolVersion: 1, mode: "explicit", ids: [1, "1"] },
     });
     expect(toBulkSelection(allMatching)).toEqual({
       ok: true,
       value: {
-        protocolVersion: 0,
+        protocolVersion: 1,
         mode: "allMatching",
         scopeToken: "opaque",
         excludedIds: [],

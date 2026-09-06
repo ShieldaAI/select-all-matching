@@ -1,100 +1,39 @@
 # Roadmap
 
-Last updated: 2026-09-04
+## 1.0 scope
 
-The state machine and draft codecs are implemented. The React/TanStack adapter, server
-coordination API, and example application are still planned. Protocol and stored-state version `0`
-remain experimental.
+The stable package covers the headless selection state machine, indexed reads, state transfer,
+bulk-request encoding, and server decoding. Scope-token storage, query execution, authentication,
+authorization, and table components belong to the application.
 
-## The project
+The release candidate adds version-1 formats with version-0 decoder compatibility, fixed JSON
+fixtures, a public declaration baseline, and a complete example using the packed package. The
+example uses a browser and a Node HTTP server so the core can be exercised without committing to
+a framework adapter API.
 
-`select-all-matching` is a headless TypeScript library for selection across server-paginated
-tables. It stores either a list of selected IDs or a server-defined result set with a list of
-excluded IDs. The browser never has to fetch every matching ID.
+## Release checks
 
-## What is done
+- Unit, property, type, coverage, and malformed-input tests pass.
+- Packed consumers pass on Node 22 and 24, including minimum runtime imports.
+- TypeScript 5.4 and the current compiler accept NodeNext and Bundler consumers.
+- The HTTP example covers pagination, exclusions, token binding, expiry, permissions, and limits.
+- Browser checks exercise selection, query races, checkboxes, and execution.
+- The same tarball passes package and example checks before publishing.
+- The publish workflow selects `next` for prereleases and `latest` for stable tags.
 
-- Immutable empty, explicit, and all-matching state
-- Single-row and page-sized mutations
-- Scope revisions that reject old `A -> B -> A` events
-- Compare-and-set scope-token refresh
-- Scope-aware membership and page reads
-- Draft version-0 state and bulk-request codecs
-- Bounded server-side request decoding
-- Unit, property, parser, type, coverage, and packed-package tests
+These are engineering checks. They do not establish that somebody has used the library in their
+own application. Before declaring 1.0, run the RC through a real integration and fix any API
+changes that trial exposes. A second developer should be able to complete the main flow from the
+guides. There is no required star count, download count, or waiting period.
 
-## Next
+The first release through npm's configured trusted publisher still needs to succeed. Private
+vulnerability reporting is enabled on GitHub; see the security policy for the reporting form.
 
-### Validate the API
+## Later
 
-Try the current model with teams that own server-paginated tables. Settle scope-token shape,
-explicit-selection filter drift, persisted-state demand, and framework support from those trials
-before expanding the API.
-
-### Finish one client path
-
-- Add a controlled React hook that uses functional state updates.
-- Add one TanStack Table adapter, for the major version trial users need.
-- Test SSR imports, Strict Mode, two queued updates before rerender, accessible checkboxes, and the
-  advertised peer-version range.
-- Install the packed tarball in the example instead of importing source files.
-
-TanStack's loaded-row selection is not the source of truth. The adapter should derive checkbox
-state from this package and translate UI events back into scoped commands.
-
-### Finish one server path
-
-- Add small resolver and authorizer interfaces.
-- Decode and limit the request before calling application code.
-- Fail closed on expired scopes, callback errors, and resource or operation mismatches.
-- Recheck the current user and row eligibility when the action runs.
-
-The example can use a short-lived random handle in memory. It must say plainly that production
-storage, token creation, queries, authentication, authorization, and jobs belong to the
-application.
-
-### Build the example
-
-Use a large deterministic dataset, server-side filters and pagination, slow or reordered
-responses, token expiry, permission changes, and one harmless bulk action. It should demonstrate:
-
-1. selecting rows across pages;
-2. selecting and deselecting a page;
-3. selecting all matching rows;
-4. excluding rows afterward;
-5. changing filters and returning to an earlier filter; and
-6. previewing the compact request before execution.
-
-No example path may enumerate all matching IDs in the browser.
-
-## Before a wider beta
-
-- Set the TypeScript, React, and TanStack support ranges from packed consumer tests.
-- Review the public API and generated declarations.
-- Add cross-tenant, cross-resource, cross-operation, expiry, and permission-revocation tests.
-- Write a short quick start and server integration guide.
-- Have someone unfamiliar with the code complete the main flow from the documentation.
-- Test the exact tarball and enable private vulnerability reporting before promoting the package
-  beyond the initial prerelease.
-
-The first public prerelease is `0.1.0-beta.0` on npm's `next` tag. It is intentionally experimental;
-[versioning.md](./versioning.md) contains the compatibility rules.
-
-## Later, if users ask for it
-
-- Stable wire protocol version 1
-- A second TanStack major
-- Other table or framework adapters
-- Persisted-state migrations
-- Database-specific examples
+Add React or table-library adapters when a real integration shows which repeated code is useful
+to extract. Start with a tested recipe. Other frameworks, saved-query workflows, database-specific
+examples, and richer server helpers should follow actual demand.
 
 Table components, query builders, token services, authorization frameworks, job queues, progress
-UI, undo, tree selection, and offline synchronization are outside the current project.
-
-## References
-
-- [TanStack Table row selection](https://tanstack.com/table/v8/docs/guide/row-selection)
-- [TanStack issue #4781](https://github.com/TanStack/table/issues/4781)
-- [MUI Data Grid row selection](https://mui.com/x/react-data-grid/row-selection/)
-- [AG Grid server-side row selection](https://github.com/ag-grid/ag-grid/blob/latest/documentation/ag-grid-docs/src/content/docs/server-side-model-selection/index.mdoc)
-- [`react-server-table`](https://github.com/Muhammad-UmairAli/react-server-table)
+UI, undo, tree selection, and offline synchronization remain outside the core.

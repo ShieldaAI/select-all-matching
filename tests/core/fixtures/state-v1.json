@@ -1,0 +1,37 @@
+[
+  {
+    "stateVersion": 1,
+    "scopeKey": "customers:active",
+    "scopeRevision": 0,
+    "selection": { "mode": "empty" }
+  },
+  {
+    "stateVersion": 1,
+    "scopeKey": "customers:active",
+    "scopeRevision": 3,
+    "selection": {
+      "mode": "explicit",
+      "ids": [1, "1", 0, -9007199254740991, 9007199254740991, "__proto__", "café", "😀"]
+    }
+  },
+  {
+    "stateVersion": 1,
+    "scopeKey": "customers:active",
+    "scopeRevision": 9007199254740991,
+    "selection": {
+      "mode": "allMatching",
+      "scopeToken": "opaque-token-1",
+      "excludedIds": [2, "2", "cus_3"]
+    }
+  },
+  {
+    "stateVersion": 1,
+    "scopeKey": "customers:archived",
+    "scopeRevision": 4,
+    "selection": {
+      "mode": "allMatching",
+      "scopeToken": "opaque-token-2",
+      "excludedIds": []
+    }
+  }
+]

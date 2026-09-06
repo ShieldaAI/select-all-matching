@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Invoice review · select-all-matching</title>
+    <link rel="stylesheet" href="/style.css" />
+    <script type="importmap">
+      { "imports": { "select-all-matching": "/vendor/index.js" } }
+    </script>
+    <script type="module" src="/client.mjs"></script>
+  </head>
+  <body>
+    <main>
+      <header class="heading">
+        <div>
+          <p class="eyebrow">select-all-matching / working example</p>
+          <h1>Invoice review</h1>
+        </div>
+        <span class="session">Alex · North workspace</span>
+      </header>
+      <p class="intro">
+        100,000 records on the server. Only one page reaches your browser. Select a few invoices, or
+        everything matching the current filter.
+      </p>
+      <form id="filters" class="filters">
+        <label
+          >Status filter<select id="status">
+            <option value="all">Any status</option>
+            <option value="open">Open</option>
+            <option value="paid">Paid</option>
+          </select></label
+        >
+        <label class="search"
+          >Search invoices<input
+            id="search"
+            type="search"
+            placeholder="Invoice number"
+            maxlength="80"
+        /></label>
+        <button type="submit">Apply filter</button>
+      </form>
+      <section class="selection" aria-label="Selection">
+        <p id="selection-summary" aria-live="polite">Nothing selected.</p>
+        <div class="buttons">
+          <button id="select-all" type="button">Select all matching</button
+          ><button id="clear" type="button">Clear selection</button>
+        </div>
+      </section>
+      <p id="load-error" role="alert"></p>
+      <p id="selection-limit" role="alert"></p>
+      <div class="table-scroll">
+        <table aria-label="Invoices" aria-busy="true">
+          <thead>
+            <tr>
+              <th scope="col">
+                <input
+                  id="page-checkbox"
+                  type="checkbox"
+                  aria-label="Select eligible rows on this page"
+                />
+              </th>
+              <th scope="col">Invoice</th>
+              <th scope="col">Status</th>
+              <th scope="col">Review</th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+      <nav class="pagination" aria-label="Table pages">
+        <p id="page-summary" aria-live="polite">Loading invoices…</p>
+        <div class="buttons">
+          <button id="previous" type="button">Previous page</button
+          ><button id="next" type="button">Next page</button>
+        </div>
+      </nav>
+      <section class="bulk-action" aria-label="Bulk review">
+        <div>
+          <h2>Review selected invoices</h2>
+          <p>
+            Locked or already reviewed rows cannot be selected. The server checks access and
+            eligibility again when you run the action.
+          </p>
+        </div>
+        <div class="buttons">
+          <button id="preview" type="button">Preview selection</button
+          ><button id="apply" class="primary" type="button">Mark reviewed</button>
+        </div>
+        <p id="action-result" role="status"></p>
+      </section>
+      <details>
+        <summary>Request and server checks</summary>
+        <p>
+          This is the selection body sent to the bulk endpoint. The opaque token is redacted here.
+          Preview counts describe current eligible rows; they can change before execution.
+        </p>
+        <pre id="request-preview">null</pre>
+        <div class="buttons">
+          <button id="expire" type="button">Expire scope tokens</button
+          ><button id="permission" type="button">Revoke permission</button>
+        </div>
+        <p class="note">
+          These controls simulate server changes. Tokens last 60 seconds. Expiry requires clearing
+          the selection and selecting again. Marking rows only changes memory; restarting the server
+          resets the data.
+        </p>
+      </details>
+      <footer>
+        Demo sessions and controls are for local use. See the example README before adapting the
+        server.
+      </footer>
+    </main>
+  </body>
+</html>

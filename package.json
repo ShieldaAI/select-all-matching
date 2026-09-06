@@ -1,6 +1,6 @@
 {
   "name": "select-all-matching",
-  "version": "0.1.0-beta.0",
+  "version": "1.0.0-rc.1",
   "description": "Select all filtered rows across server-paginated tables without loading every record.",
   "keywords": [
     "bulk-actions",
@@ -51,7 +51,10 @@
     "README.md",
     "SECURITY.md",
     "docs/TECHNICAL_SPEC.md",
-    "docs/versioning.md"
+    "docs/versioning.md",
+    "docs/client-guide.md",
+    "docs/server-guide.md",
+    "docs/api.md"
   ],
   "engines": {
     "node": "^22.0.0 || ^24.0.0"
@@ -65,7 +68,13 @@
   },
   "scripts": {
     "build": "node ./scripts/clean.mjs && tsc -p tsconfig.build.json",
-    "check": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run package:check",
+    "check": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run test:release && npm run package:check && npm run example:check",
+    "api:check": "npm run build && node scripts/check-api.mjs",
+    "api:update": "npm run build && node scripts/check-api.mjs --update",
+    "test:release": "node --test scripts/tests/*.test.mjs",
+    "example": "node scripts/run-example.mjs --serve",
+    "example:check": "node scripts/run-example.mjs",
+    "test:browser": "node scripts/run-example.mjs --browser",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint . --max-warnings 0",
@@ -78,6 +87,7 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "devDependencies": {
+    "@playwright/test": "1.63.0",
     "@arethetypeswrong/cli": "0.18.5",
     "@eslint/js": "10.0.1",
     "@types/node": "22.20.1",

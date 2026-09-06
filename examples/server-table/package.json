@@ -1,0 +1,9 @@
+{
+  "name": "select-all-matching-server-table-example",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test server.test.mjs controller.test.mjs"
+  }
+}

@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import fc from "fast-check";
 import { describe, expect, expectTypeOf, it } from "vitest";
 
@@ -7,6 +8,31 @@ const PROPERTY_SEED = 0x5e2be2;
 const { decodeBulkSelection } = publicServerApi;
 
 describe("decodeBulkSelection", () => {
+  it("preserves the version 1 wire fixtures through JSON", () => {
+    const fixtures = JSON.parse(
+      readFileSync(new URL("./fixtures/bulk-v1.json", import.meta.url), "utf8"),
+    ) as unknown[];
+
+    for (const fixture of fixtures) {
+      const decoded = decodeBulkSelection(fixture);
+      expect(decoded).toEqual({ ok: true, value: fixture });
+      if (!decoded.ok) throw new Error("Expected a valid protocol fixture");
+      expect(JSON.parse(JSON.stringify(decoded.value))).toEqual(fixture);
+    }
+  });
+
+  it("accepts beta requests and returns version 1", () => {
+    for (const selection of [
+      { mode: "explicit", ids: [1, "1"] },
+      { mode: "allMatching", scopeToken: "opaque", excludedIds: [2] },
+    ]) {
+      expect(decodeBulkSelection({ protocolVersion: 0, ...selection })).toEqual({
+        ok: true,
+        value: { protocolVersion: 1, ...selection },
+      });
+    }
+  });
+
   it("exports only the documented runtime API", () => {
     expect(Object.keys(publicServerApi).sort()).toEqual([
       "DEFAULT_BULK_LIMITS",
@@ -14,17 +40,17 @@ describe("decodeBulkSelection", () => {
     ]);
   });
 
-  it("decodes explicit and all-matching draft requests", () => {
+  it("decodes explicit and all-matching requests", () => {
     expect(
       decodeBulkSelection({
-        protocolVersion: 0,
+        protocolVersion: 1,
         mode: "explicit",
         ids: [1, "1", -0],
       }),
     ).toEqual({
       ok: true,
       value: {
-        protocolVersion: 0,
+        protocolVersion: 1,
         mode: "explicit",
         ids: [1, "1", 0],
       },
@@ -32,7 +58,7 @@ describe("decodeBulkSelection", () => {
 
     expect(
       decodeBulkSelection({
-        protocolVersion: 0,
+        protocolVersion: 1,
         mode: "allMatching",
         scopeToken: "opaque-token",
         excludedIds: [4, "4"],
@@ -40,7 +66,7 @@ describe("decodeBulkSelection", () => {
     ).toEqual({
       ok: true,
       value: {
-        protocolVersion: 0,
+        protocolVersion: 1,
         mode: "allMatching",
         scopeToken: "opaque-token",
         excludedIds: [4, "4"],
@@ -51,7 +77,7 @@ describe("decodeBulkSelection", () => {
   it("infers a branded result only when a decoder is supplied", () => {
     type CustomerId = string & { readonly customerId: unique symbol };
     const result = decodeBulkSelection(
-      { protocolVersion: 0, mode: "explicit", ids: ["cus_1"] },
+      { protocolVersion: 1, mode: "explicit", ids: ["cus_1"] },
       {
         decodeId(value) {
           return typeof value === "string" && value.startsWith("cus_")
@@ -62,7 +88,7 @@ describe("decodeBulkSelection", () => {
     );
 
     expectTypeOf(result).toEqualTypeOf<
-      publicServerApi.PayloadDecodeResult<publicServerApi.BulkSelectionDraft<CustomerId>>
+      publicServerApi.PayloadDecodeResult<publicServerApi.BulkSelection<CustomerId>>
     >();
     expect(result.ok).toBe(true);
   });
@@ -72,13 +98,13 @@ describe("decodeBulkSelection", () => {
       ok: false,
       error: { code: "unsupportedVersion", path: "$.protocolVersion" },
     });
-    expect(decodeBulkSelection({ protocolVersion: 0, mode: "page", ids: [1] })).toEqual({
+    expect(decodeBulkSelection({ protocolVersion: 1, mode: "page", ids: [1] })).toEqual({
       ok: false,
       error: { code: "invalidMode", path: "$.mode" },
     });
     expect(
       decodeBulkSelection({
-        protocolVersion: 0,
+        protocolVersion: 1,
         mode: "explicit",
         ids: [],
         scopeKey: "browser-scope",
@@ -87,7 +113,7 @@ describe("decodeBulkSelection", () => {
       ok: false,
       error: { code: "unexpectedField", path: "$.scopeKey" },
     });
-    expect(decodeBulkSelection({ protocolVersion: 0, mode: "explicit", ids: [] })).toEqual({
+    expect(decodeBulkSelection({ protocolVersion: 1, mode: "explicit", ids: [] })).toEqual({
       ok: false,
       error: { code: "emptyExplicitSelection", path: "$.ids" },
     });
@@ -97,7 +123,7 @@ describe("decodeBulkSelection", () => {
     expect(
       decodeBulkSelection(
         {
-          protocolVersion: 0,
+          protocolVersion: 1,
           mode: "allMatching",
           scopeToken: 123,
           excludedIds: [false, false],
@@ -111,7 +137,7 @@ describe("decodeBulkSelection", () => {
 
     expect(
       decodeBulkSelection({
-        protocolVersion: 0,
+        protocolVersion: 1,
         mode: "allMatching",
         scopeToken: 123,
         excludedIds: [false],
@@ -123,7 +149,7 @@ describe("decodeBulkSelection", () => {
 
     expect(
       decodeBulkSelection({
-        protocolVersion: 0,
+        protocolVersion: 1,
         mode: "explicit",
         ids: ["same", "same", null],
       }),
@@ -134,7 +160,7 @@ describe("decodeBulkSelection", () => {
 
     expect(
       decodeBulkSelection({
-        protocolVersion: 0,
+        protocolVersion: 1,
         mode: "explicit",
         ids: ["same", "same"],
       }),
@@ -148,7 +174,7 @@ describe("decodeBulkSelection", () => {
     expect(
       decodeBulkSelection(
         {
-          protocolVersion: 0,
+          protocolVersion: 1,
           mode: "allMatching",
           scopeToken: "😀",
           excludedIds: ["é"],
@@ -160,7 +186,7 @@ describe("decodeBulkSelection", () => {
     expect(
       decodeBulkSelection(
         {
-          protocolVersion: 0,
+          protocolVersion: 1,
           mode: "allMatching",
           scopeToken: "😀",
           excludedIds: [],
@@ -177,14 +203,14 @@ describe("decodeBulkSelection", () => {
     const ids = new Array(1);
     Object.setPrototypeOf(ids, { 0: "inherited-id" });
 
-    expect(decodeBulkSelection({ protocolVersion: 0, mode: "explicit", ids })).toEqual({
+    expect(decodeBulkSelection({ protocolVersion: 1, mode: "explicit", ids })).toEqual({
       ok: false,
       error: { code: "missingField", path: "$.ids[0]" },
     });
   });
 
   it("turns decoder exceptions and malformed output into invalid-ID errors", () => {
-    const payload = { protocolVersion: 0, mode: "explicit", ids: ["id"] };
+    const payload = { protocolVersion: 1, mode: "explicit", ids: ["id"] };
 
     expect(
       decodeBulkSelection(payload, {

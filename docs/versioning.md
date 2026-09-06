@@ -1,56 +1,67 @@
 # Versioning and compatibility
 
-This project versions three things independently: the npm package, the bulk wire protocol, and an
-optional persisted-state format. A matching number in two domains does not imply compatibility.
+The npm package, bulk-request protocol, and encoded-state format have separate versions.
 
-## Package versions
+## Package
 
-Published package versions follow Semantic Versioning once `1.0.0` is released.
+The 1.x contract covers the root and `/server` exports, their types, documented state transitions,
+codec limits, and accepted formats. New optional exports can be added in a minor release. Removing
+an export, changing existing input/output types, changing defaults, or dropping a supported runtime
+requires a major release. Deprecated exports remain available throughout 1.x.
 
-Before 1.0, the API is experimental. Breaking changes are allowed between minor prereleases, but
-they must be explained in the changelog. A prerelease such as `0.1.0-beta.0` is published under the
-`next` npm tag. The `latest` tag is reserved for stable versions.
+The checked-in declaration report records the public type surface. Review changes alongside the
+changelog; regenerating the report does not make a breaking change acceptable.
 
-After 1.0:
+The working version is `1.0.0-rc.1`. An RC can still change before 1.0; any such change must be called
+out. Release tags with a prerelease suffix publish to `next`; stable tags publish to `latest`. npm
+assigned `latest` to the initial beta as well and rejected its removal, so check the version itself
+when evaluating the current public package.
 
-- patch releases fix behavior without changing the supported API;
-- minor releases add backward-compatible API, exports, or decoder support; and
-- major releases may remove or change supported API, defaults, runtime ranges, or peer ranges after
-  the documented deprecation process.
+## Wire protocol and encoded state
 
-Adding a subpath export is normally minor. Removing or renaming one is major after 1.0. The initial
-implementation exposes only the package root and `/server`; planned framework adapters are not
-compatibility promises until they ship.
+`protocolVersion: 1` and `stateVersion: 1` are the 1.x baseline formats. Encoders emit version 1.
+Decoders accept versions 0 and 1, and bulk decoding normalizes either to version 1. Version 0 refers
+specifically to the format shipped in `0.1.0-beta.0`; it is retained for upgrades, not extended.
+The deprecated `BulkSelectionDraft` and `EncodedSelectionDraft` types describe that original
+version-0 data. New code should use `BulkSelection` and `EncodedSelection`.
 
-## Protocol versions
+Permanent JSON fixtures cover every mode. Support for these accepted formats remains throughout
+1.x. New formats must be explicit encoder opt-ins. Changing the default output format or dropping
+an accepted decoder version requires a major release.
 
-Bulk requests carry `protocolVersion`. Draft protocol version `0` is prerelease-only and may
-change. Protocol version `1` will be the first stable wire format.
+To upgrade a deployed beta:
 
-For a new stable version, deploy the server decoder before clients can emit it. The default encoder
-stays on the package major's baseline version; newer formats are explicit opt-ins. Stable formats
-keep permanent fixtures and decoder support for that package major. Changing the default encoder or
-removing a stable decoder requires a package-major release.
+1. Deploy the new server decoder first; it accepts existing version-0 clients.
+2. Upgrade clients, which now send version 1. Old servers reject those requests.
+3. Decode old encoded state and encode it again if transfer is needed. Revalidate the active scope
+   and token with the server; decoding does not renew expiry or permission.
 
-## Persisted-state versions
+Runtime state is not a storage format. Object copies, structured clones, and states created by a
+second installed package are rejected. Transfer them through the codec. Encoded all-matching state
+contains a scope token and must not be treated as a permanent bookmark or saved query. An
+application that saves selection must define its own retention, expiry, and revalidation policy.
 
-Persisted selections carry `stateVersion` rather than `protocolVersion`. Draft state version `0`
-has the same prerelease-only status. A stable state decoder remains available for its package
-major, and migrations are documented when a real migration exists.
+## Errors
 
-Runtime state objects are not a storage format. Do not serialize them by accident or depend on
-their property layout; use the versioned encoder when one is provided.
+The existing transition reasons, conversion reasons, and `PayloadErrorCode` members are part of
+the 1.x contract. Consumers may switch exhaustively on these unions. Adding a new member to an
+existing result union requires a major release; an additive API can define its own result type.
 
-## Runtime and toolchain support
+For ordinary JSON payloads, validation order is documented in the technical design. Error `path`
+is diagnostic text, not a parsing API. Do not base application control flow on a path or thrown
+error message. Message wording and paths may improve in patch releases. Custom decoder codes are
+owned by the application. JavaScript programmer errors throw `TypeError`; malformed external
+payloads return a decode error instead.
 
-The initial runtime target is unbundled ESM at ES2022. The supported runtime majors are Node 22 and
-Node 24. Build tools may require a newer patch release than the emitted library.
+## Runtime support
 
-Only versions exercised in CI are claimed as supported. After 1.0, dropping a supported Node,
-React, or table-adapter range is a package-major change unless that range was marked experimental.
+The library ships ESM targeting ES2022. Node 22 and 24 are supported; CI checks their current
+releases and packed imports at each major's minimum version. Tooling may need a newer patch than
+the library itself. Dropping a supported Node major is a package-major change.
 
-TypeScript compatibility is tested from the declarations in the packed tarball. The minimum
-supported version is TypeScript 5.4.
+Packed declarations are tested with TypeScript 5.4 and the current project compiler, under both
+NodeNext and Bundler resolution. Browser tests run the installed package in Chromium, Firefox,
+and WebKit. This does not promise compatibility with old browser versions or any framework.
 
-Every release records visible changes in `CHANGELOG.md`. Stable protocol fixtures, support-matrix
-changes, and migration instructions are included when relevant.
+The example is application code, not another supported package API. No React, TanStack, database,
+or web-server adapter is included in the 1.x contract.

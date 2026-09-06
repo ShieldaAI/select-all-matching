@@ -29,8 +29,8 @@ export const DEFAULT_STATE_DECODE_LIMITS: StateDecodeLimits = Object.freeze({
   maxScopeKeyBytes: 512,
 });
 
-export type EncodedSelectionDraft<Id extends RowId = RowId> = Readonly<{
-  readonly stateVersion: 0;
+type EncodedSelectionFormat<Id extends RowId, Version extends 0 | 1> = Readonly<{
+  readonly stateVersion: Version;
   readonly scopeKey: string;
   readonly scopeRevision: number;
   selection:
@@ -43,18 +43,28 @@ export type EncodedSelectionDraft<Id extends RowId = RowId> = Readonly<{
       }>;
 }>;
 
-export type BulkSelectionDraft<Id extends RowId = RowId> =
+type BulkSelectionFormat<Id extends RowId, Version extends 0 | 1> =
   | Readonly<{
-      protocolVersion: 0;
+      protocolVersion: Version;
       mode: "explicit";
       ids: readonly Id[];
     }>
   | Readonly<{
-      protocolVersion: 0;
+      protocolVersion: Version;
       mode: "allMatching";
       scopeToken: string;
       excludedIds: readonly Id[];
     }>;
+
+export type EncodedSelection<Id extends RowId = RowId> = EncodedSelectionFormat<Id, 1>;
+
+export type BulkSelection<Id extends RowId = RowId> = BulkSelectionFormat<Id, 1>;
+
+/** @deprecated Version 0 input remains readable. New state encodes as EncodedSelection. */
+export type EncodedSelectionDraft<Id extends RowId = RowId> = EncodedSelectionFormat<Id, 0>;
+
+/** @deprecated Version 0 input remains readable. New requests use BulkSelection. */
+export type BulkSelectionDraft<Id extends RowId = RowId> = BulkSelectionFormat<Id, 0>;
 
 export type PayloadErrorCode =
   | "invalidType"
@@ -81,7 +91,7 @@ export type PayloadDecodeResult<Value> =
   Readonly<{ ok: true; value: Value }> | Readonly<{ ok: false; error: PayloadError }>;
 
 export type BulkConversionResult<Id extends RowId = RowId> =
-  | Readonly<{ ok: true; value: BulkSelectionDraft<Id> | null }>
+  | Readonly<{ ok: true; value: BulkSelection<Id> | null }>
   | Readonly<{
       ok: false;
       reason: "tooManyIds" | "tokenTooLong" | "idTooLong";
@@ -454,7 +464,7 @@ function decodeVersion(
   if (typeof version !== "number") {
     return error("invalidType", fieldPath);
   }
-  if (version !== 0) {
+  if (version !== 0 && version !== 1) {
     return error("unsupportedVersion", fieldPath);
   }
   return { ok: true, value: true };
@@ -612,12 +622,10 @@ function decodeSelectionUnsafe<Id extends RowId>(
   };
 }
 
-export function encodeSelection<Id extends RowId>(
-  state: SelectionState<Id>,
-): EncodedSelectionDraft<Id> {
+export function encodeSelection<Id extends RowId>(state: SelectionState<Id>): EncodedSelection<Id> {
   assertNormalizedSelection(state);
   const base = {
-    stateVersion: 0 as const,
+    stateVersion: 1 as const,
     scopeKey: state.scopeKey,
     scopeRevision: state.scopeRevision,
   };
@@ -692,7 +700,7 @@ export function toBulkSelection<Id extends RowId>(
     ? {
         ok: true,
         value: {
-          protocolVersion: 0,
+          protocolVersion: 1,
           mode: "explicit",
           ids: [...state.ids],
         },
@@ -700,7 +708,7 @@ export function toBulkSelection<Id extends RowId>(
     : {
         ok: true,
         value: {
-          protocolVersion: 0,
+          protocolVersion: 1,
           mode: "allMatching",
           scopeToken: state.scopeToken,
           excludedIds: [...state.excludedIds],
@@ -711,7 +719,7 @@ export function toBulkSelection<Id extends RowId>(
 function decodeBulkSelectionUnsafe<Id extends RowId>(
   input: unknown,
   options: ResolvedDecodeOptions<Id>,
-): PayloadDecodeResult<BulkSelectionDraft<Id>> {
+): PayloadDecodeResult<BulkSelection<Id>> {
   if (!isRecord(input)) {
     return error("invalidType", "$");
   }
@@ -753,7 +761,7 @@ function decodeBulkSelectionUnsafe<Id extends RowId>(
 
     return {
       ok: true,
-      value: { protocolVersion: 0, mode: "explicit", ids: ids.value },
+      value: { protocolVersion: 1, mode: "explicit", ids: ids.value },
     };
   }
 
@@ -776,7 +784,7 @@ function decodeBulkSelectionUnsafe<Id extends RowId>(
   return {
     ok: true,
     value: {
-      protocolVersion: 0,
+      protocolVersion: 1,
       mode: "allMatching",
       scopeToken: scopeToken.value,
       excludedIds: excludedIds.value,
@@ -787,15 +795,15 @@ function decodeBulkSelectionUnsafe<Id extends RowId>(
 export function decodeBulkSelection<Id extends RowId>(
   input: unknown,
   options: TypedBulkDecodeOptions<Id>,
-): PayloadDecodeResult<BulkSelectionDraft<Id>>;
+): PayloadDecodeResult<BulkSelection<Id>>;
 export function decodeBulkSelection(
   input: unknown,
   options?: BulkDecodeOptions,
-): PayloadDecodeResult<BulkSelectionDraft<RowId>>;
+): PayloadDecodeResult<BulkSelection<RowId>>;
 export function decodeBulkSelection<Id extends RowId>(
   input: unknown,
   options?: BulkDecodeOptions | TypedBulkDecodeOptions<Id>,
-): PayloadDecodeResult<BulkSelectionDraft<Id>> {
+): PayloadDecodeResult<BulkSelection<Id>> {
   const resolved = resolveDecodeOptions<Id>(options, "bulk");
   try {
     return decodeBulkSelectionUnsafe(input, resolved);

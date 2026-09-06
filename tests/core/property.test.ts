@@ -143,7 +143,7 @@ describe("selection model properties", () => {
           state = applyOperation(state, current);
         }
 
-        const decoded = decodeSelection(encodeSelection(state));
+        const decoded = decodeSelection(JSON.parse(JSON.stringify(encodeSelection(state))));
         expect(decoded.ok).toBe(true);
         if (decoded.ok) expect(decoded.value).toEqual(state);
       }),
@@ -172,7 +172,10 @@ describe("selection model properties", () => {
           const bulk = toBulkSelection(selected.state);
           expect(bulk.ok).toBe(true);
           if (!bulk.ok || bulk.value === null) throw new Error("expected a bulk request");
-          expect(decodeBulkSelection(bulk.value)).toEqual({ ok: true, value: bulk.value });
+          expect(decodeBulkSelection(JSON.parse(JSON.stringify(bulk.value)))).toEqual({
+            ok: true,
+            value: bulk.value,
+          });
         },
       ),
       { numRuns: 100, seed: PROPERTY_SEED },

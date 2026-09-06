@@ -2,9 +2,15 @@ import {
   applySelectionCommand,
   decodeSelection,
   emptySelection,
+  encodeSelection,
   isIdSelected,
   setIdSelected,
+  toBulkSelection,
+  type BulkSelection,
   type BulkSelectionDraft,
+  type EncodedSelection,
+  type EncodedSelectionDraft,
+  type IdDecoder,
   type SelectionState,
   type SelectionView,
 } from "../../src/index.js";
@@ -73,10 +79,51 @@ declare function acceptsStringView(view: SelectionView<string>): void;
 // @ts-expect-error -- A branded-ID view must not be widened to accept plain strings.
 acceptsStringView(customerView);
 
-declare const customerBulk: BulkSelectionDraft<CustomerId>;
-const readonlyStringBulk: BulkSelectionDraft<string> = customerBulk;
+declare const customerBulk: BulkSelection<CustomerId>;
+const readonlyStringBulk: BulkSelection<string> = customerBulk;
 declare function acceptsMutableStringIds(ids: string[]): void;
 if (readonlyStringBulk.mode === "explicit") {
   // @ts-expect-error -- Covariant wire output is safe because its arrays are readonly.
   acceptsMutableStringIds(readonlyStringBulk.ids);
 }
+
+declare function acceptsEncodedCustomerState(value: EncodedSelection<CustomerId>): void;
+declare function acceptsCustomerBulk(value: BulkSelection<CustomerId>): void;
+declare function acceptsVersionOne(version: 1): void;
+
+const encodedCustomerState = encodeSelection(customerState);
+acceptsEncodedCustomerState(encodedCustomerState);
+acceptsVersionOne(encodedCustomerState.stateVersion);
+
+const customerRequest = toBulkSelection(customerState);
+if (customerRequest.ok && customerRequest.value !== null) {
+  acceptsCustomerBulk(customerRequest.value);
+  acceptsVersionOne(customerRequest.value.protocolVersion);
+}
+
+declare const decodeCustomerId: IdDecoder<CustomerId>;
+const restoredCustomer = decodeSelection(payload, { decodeId: decodeCustomerId });
+if (restoredCustomer.ok) acceptsEncodedCustomerState(encodeSelection(restoredCustomer.value));
+const decodedRequest = decodeBulkSelection(payload, { decodeId: decodeCustomerId });
+if (decodedRequest.ok) {
+  acceptsCustomerBulk(decodedRequest.value);
+  acceptsVersionOne(decodedRequest.value.protocolVersion);
+}
+
+/* eslint-disable @typescript-eslint/no-deprecated -- Check the beta migration types. */
+declare const draftState: EncodedSelectionDraft<CustomerId>;
+declare const draftRequest: BulkSelectionDraft<CustomerId>;
+/* eslint-enable @typescript-eslint/no-deprecated */
+// @ts-expect-error -- Beta payload types still describe version 0.
+acceptsEncodedCustomerState(draftState);
+// @ts-expect-error -- A beta request must be decoded before it can be treated as version 1.
+acceptsCustomerBulk(draftRequest);
+
+type InvoiceId = number & { readonly invoiceId: unique symbol };
+const invoiceState = emptySelection<InvoiceId>("invoices");
+setIdSelected(invoiceState, {
+  context: { scopeKey: "invoices", scopeRevision: 0 },
+  // @ts-expect-error -- Numeric ID brands receive the same protection as string brands.
+  id: 42,
+  selected: true,
+});

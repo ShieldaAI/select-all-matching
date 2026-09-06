@@ -1,9 +1,9 @@
-name: Publish prerelease
+name: Publish
 
 on:
   push:
     tags:
-      - "v*-*"
+      - "v*"
 
 permissions:
   contents: read
@@ -18,7 +18,7 @@ jobs:
     name: Publish to npm
     if: github.repository == 'ShieldaAI/select-all-matching'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
       - name: Check out repository
@@ -27,21 +27,41 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
-          node-version: "24.0.0"
+          node-version: "24.x"
           registry-url: "https://registry.npmjs.org"
           package-manager-cache: false
 
       - name: Install declared npm version
         run: npm install --global npm@11.11.0
 
+      - name: Check tag and package version
+        id: release
+        run: node scripts/release-version.mjs
+
       - name: Install dependencies
         run: npm ci
 
-      - name: Check tag and package version
-        run: node --eval "const p = require('./package.json'); if ('v' + p.version !== process.env.GITHUB_REF_NAME) process.exit(1)"
+      - name: Check source and coverage
+        run: |
+          npm run format:check
+          npm run lint
+          npm run typecheck
+          npm run test:release
+          npm run test:coverage
 
-      - name: Run checks
-        run: npm run check
+      - name: Build and test the release artifact
+        run: npm run package:check -- --pack-destination "$RUNNER_TEMP/release"
 
-      - name: Publish prerelease
-        run: npm publish --access public --tag next --provenance
+      - name: Install browsers
+        run: npx playwright install --with-deps chromium firefox webkit
+
+      - name: Test the example against the release artifact
+        env:
+          TARBALL: ${{ steps.release.outputs.tarball }}
+        run: npm run example:check -- --tarball "$RUNNER_TEMP/release/$TARBALL" --browser
+
+      - name: Publish the tested artifact
+        env:
+          TARBALL: ${{ steps.release.outputs.tarball }}
+          CHANNEL: ${{ steps.release.outputs.channel }}
+        run: npm publish "$RUNNER_TEMP/release/$TARBALL" --ignore-scripts --access public --tag "$CHANNEL" --provenance

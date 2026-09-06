@@ -6,6 +6,24 @@ Notable changes to this project will be recorded here. The format follows
 
 ## [Unreleased]
 
+## [1.0.0-rc.1] - 2026-09-06
+
+### Changed
+
+- Encode protocol and transfer-state version 1. Decoders still read the
+  original beta's version 0; deploy the server decoder before upgrading clients.
+- Export `BulkSelection` and `EncodedSelection`. Deprecated `Draft` types continue to describe
+  version-0 inputs.
+- Check the public declaration baseline and publish the exact tarball tested by the release job.
+- Route prerelease tags to `next` and stable tags to `latest`.
+
+### Added
+
+- A runnable server-paginated table with expiring scopes, exclusions, previews, and permission checks.
+- Browser and HTTP integration tests using the installed tarball, plus worker and duplicate-package
+  transfer checks.
+- Permanent format fixtures, boundary tests, and client/server integration guides.
+
 ## [0.1.0-beta.0] - 2026-09-06
 
 ### Added
@@ -24,5 +42,6 @@ Notable changes to this project will be recorded here. The format follows
 - Forged runtime states, sparse ID lists, and inherited array values are rejected at input
   boundaries.
 
-[Unreleased]: https://github.com/ShieldaAI/select-all-matching/compare/v0.1.0-beta.0...HEAD
+[Unreleased]: https://github.com/ShieldaAI/select-all-matching/compare/v1.0.0-rc.1...HEAD
+[1.0.0-rc.1]: https://github.com/ShieldaAI/select-all-matching/compare/v0.1.0-beta.0...v1.0.0-rc.1
 [0.1.0-beta.0]: https://github.com/ShieldaAI/select-all-matching/releases/tag/v0.1.0-beta.0

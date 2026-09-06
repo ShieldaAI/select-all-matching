@@ -21,6 +21,10 @@ export default tseslint.config(
       sourceType: "module",
     },
   },
+  {
+    files: ["examples/server-table/client.mjs"],
+    languageOptions: { globals: globals.browser },
+  },
   ...typedConfigs,
   {
     files: typescriptFiles,

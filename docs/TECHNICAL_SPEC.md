@@ -1,8 +1,8 @@
 # Technical design
 
-This document describes the state machine and version-0 codecs that exist today. Version `0` is a
-draft and may change before the first stable release. Planned adapters and server helpers are not
-specified here as finished APIs.
+This document describes the state machine and version-1 codecs. Decoders also accept the original
+beta's version-0 payloads. New encoders always write version 1. Framework integration and scope
+resolution remain application responsibilities; the reference app shows one complete implementation.
 
 ## Model
 
@@ -164,14 +164,14 @@ to come from the server and may change before execution.
 These helpers trust the application to supply IDs from the stated page. They do not establish
 candidate membership, eligibility, or authorization.
 
-## Draft formats
+## Transfer and request formats
 
-Stored client state and bulk requests have separate version fields. Both current formats use draft
-version `0`.
+Encoded client state and bulk requests have separate version fields. Both current formats use
+version `1`; their numbers are independent of the npm package version.
 
 ```ts
-type EncodedSelectionDraft<Id> = {
-  stateVersion: 0;
+type EncodedSelection<Id> = {
+  stateVersion: 1;
   scopeKey: string;
   scopeRevision: number;
   selection:
@@ -184,23 +184,31 @@ type EncodedSelectionDraft<Id> = {
       };
 };
 
-type BulkSelectionDraft<Id> =
-  | { protocolVersion: 0; mode: "explicit"; ids: readonly Id[] }
+type BulkSelection<Id> =
+  | { protocolVersion: 1; mode: "explicit"; ids: readonly Id[] }
   | {
-      protocolVersion: 0;
+      protocolVersion: 1;
       mode: "allMatching";
       scopeToken: string;
       excludedIds: readonly Id[];
     };
 ```
 
-`encodeSelection` produces stored state. `decodeSelection` validates it and restores a normalized
+`encodeSelection` produces a JSON-compatible transfer value. `decodeSelection` validates it and restores a normalized
 package state. `toBulkSelection` converts current state into a request; empty state becomes `null`.
 The `/server` entry point exports `decodeBulkSelection` for untrusted request bodies.
 
 External decoders accept `unknown` and return structured errors for payload failures. Bad codec
 configuration is a programmer error and throws. The HTTP server still needs a whole-body byte limit
 before JSON parsing.
+
+Version 0 is accepted for upgrading the original beta; decoded bulk values and all new encoded
+outputs use version 1. Deploy the new server decoder before clients emit version 1.
+
+State encoding is for short-lived transfer, including between workers or package instances. It
+does not validate a restored token's expiry, current scope, or permissions. Applications that save
+selection must define retention and revalidation themselves. Do not store all-matching tokens as
+long-lived browser bookmarks or saved queries.
 
 ### Typed IDs
 

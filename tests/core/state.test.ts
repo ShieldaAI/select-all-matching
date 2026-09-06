@@ -343,7 +343,7 @@ describe("scope lifecycle and concurrency", () => {
 
   it("does not overflow the scope revision", () => {
     const decoded = decodeSelection({
-      stateVersion: 0,
+      stateVersion: 1,
       scopeKey: "A",
       scopeRevision: Number.MAX_SAFE_INTEGER,
       selection: { mode: "empty" },

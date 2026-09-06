@@ -8,9 +8,9 @@ export {
 export type {
   BulkConversionResult,
   BulkLimits,
-  BulkSelectionDraft,
+  BulkSelection,
   DecodeResult,
-  EncodedSelectionDraft,
+  EncodedSelection,
   IdDecoder,
   PayloadDecodeResult,
   PayloadError,
@@ -19,6 +19,8 @@ export type {
   StateDecodeLimits,
   TypedSelectionDecodeOptions,
 } from "./codec.js";
+// eslint-disable-next-line @typescript-eslint/no-deprecated -- Retained for beta migrations.
+export type { BulkSelectionDraft, EncodedSelectionDraft } from "./codec.js";
 export {
   applySelectionCommand,
   clearSelection,

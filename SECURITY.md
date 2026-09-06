@@ -2,16 +2,17 @@
 
 ## Supported versions
 
-The latest `0.1` prerelease and `main` receive security fixes. Older prereleases are unsupported.
+The latest published prerelease and `main` receive security fixes. Once 1.0 is released, fixes for
+supported 1.x behavior will ship in the latest 1.x patch. Older prereleases are unsupported.
 
 ## Reporting a vulnerability
 
 Do not put vulnerability details, proof-of-concept payloads, tokens, or user data in a public
 issue.
 
-Private vulnerability reporting is not enabled yet. Until it is, use the contact listed on
-[VODuda's GitHub profile](https://github.com/VODuda) to ask for a private channel. Do not include
-security details in the first message.
+Use [GitHub's private reporting form](https://github.com/ShieldaAI/select-all-matching/security/advisories/new)
+to send a report to the maintainers. If you cannot use that form, contact
+[VODuda](https://github.com/VODuda) to arrange a private channel without sharing details publicly.
 
 Include, when it is safe to do so:
 
