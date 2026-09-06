@@ -14,13 +14,26 @@ Start with `emptySelection(scopeKey)`. Keep `{ scopeKey, scopeRevision }` alongs
 produced an event. Commands and checkbox reads must use that context. Reading the newest context
 inside an old event handler can incorrectly make an old event look current.
 
-On a new query, invalidate the old page immediately and disable its bulk controls. Fetch the page
-with a request sequence or cancellation signal. Discard out-of-date responses before calling
-`reconcileScope`. When an accepted response has a new scope key, reconcile using the expected
-current context and adopt the returned revision. This clears selection.
+When a membership-changing query starts, invalidate the selection context immediately and
+disable the old page's bulk controls. Do not wait for the response: B may never finish before the
+user returns to A. One approach is to reserve a local key prefix that the server never returns:
 
-Returning from A to B to A produces a new revision, even when the key is again A. Request
-sequencing is still necessary: the library cannot know which query your UI currently wants.
+```ts
+const sequence = ++querySequence;
+state = reconcileScope(state, {
+  expected: { scopeKey: state.scopeKey, scopeRevision: state.scopeRevision },
+  nextScopeKey: `pending:${sequence}`,
+}).state;
+```
+
+Fetch the page with that sequence or a cancellation signal. Discard out-of-date responses, then
+reconcile the accepted response's server scope key against the current pending context. Keep
+controls disabled until that finishes. Do not use the pending key to request a server token.
+Pagination within the same candidate set does not need this invalidation.
+
+This gives A to B to A a new revision even if B's response is discarded. Clearing selection alone
+does not advance the revision; starting again with `emptySelection` resets it. Neither protects
+against the first A's delayed events. The library cannot know which query your UI currently wants.
 
 ## Render and update checkboxes
 
