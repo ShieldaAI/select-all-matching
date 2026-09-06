@@ -6,7 +6,7 @@ Notable changes to this project will be recorded here. The format follows
 
 ## [Unreleased]
 
-## [0.1.0-beta.0] - 2026-09-04
+## [0.1.0-beta.0] - 2026-09-06
 
 ### Added
 
@@ -25,4 +25,4 @@ Notable changes to this project will be recorded here. The format follows
   boundaries.
 
 [Unreleased]: https://github.com/ShieldaAI/select-all-matching/compare/v0.1.0-beta.0...HEAD
-[0.1.0-beta.0]: https://github.com/ShieldaAI/select-all-matching/tree/v0.1.0-beta.0
+[0.1.0-beta.0]: https://github.com/ShieldaAI/select-all-matching/releases/tag/v0.1.0-beta.0

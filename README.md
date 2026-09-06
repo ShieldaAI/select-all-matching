@@ -1,6 +1,8 @@
 # select-all-matching
 
+[![npm version](https://img.shields.io/npm/v/select-all-matching?tag=next)](https://www.npmjs.com/package/select-all-matching)
 [![CI](https://github.com/ShieldaAI/select-all-matching/actions/workflows/ci.yml/badge.svg)](https://github.com/ShieldaAI/select-all-matching/actions/workflows/ci.yml)
+[![MIT License](https://img.shields.io/npm/l/select-all-matching)](https://github.com/ShieldaAI/select-all-matching/blob/main/LICENSE)
 
 “Select all” for tables where most rows live on another page.
 
