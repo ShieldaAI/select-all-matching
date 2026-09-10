@@ -6,6 +6,8 @@ Notable changes to this project will be recorded here. The format follows
 
 ## [Unreleased]
 
+## [1.0.0-rc.2] - 2026-09-11
+
 ### Fixed
 
 - Preserve keyboard focus after pagination and bulk actions without reclaiming it after the user
@@ -20,6 +22,7 @@ Notable changes to this project will be recorded here. The format follows
 ### Added
 
 - Generated scope/token race tests, direct/indexed read comparisons, and maximum-revision regressions.
+- Tests for the publishing job's archive, digest, tag, and package-metadata checks.
 
 ## [1.0.0-rc.1] - 2026-09-06
 
@@ -57,6 +60,7 @@ Notable changes to this project will be recorded here. The format follows
 - Forged runtime states, sparse ID lists, and inherited array values are rejected at input
   boundaries.
 
-[Unreleased]: https://github.com/ShieldaAI/select-all-matching/compare/v1.0.0-rc.1...HEAD
+[Unreleased]: https://github.com/ShieldaAI/select-all-matching/compare/v1.0.0-rc.2...HEAD
+[1.0.0-rc.2]: https://github.com/ShieldaAI/select-all-matching/compare/v1.0.0-rc.1...v1.0.0-rc.2
 [1.0.0-rc.1]: https://github.com/ShieldaAI/select-all-matching/compare/v0.1.0-beta.0...v1.0.0-rc.1
 [0.1.0-beta.0]: https://github.com/ShieldaAI/select-all-matching/releases/tag/v0.1.0-beta.0
