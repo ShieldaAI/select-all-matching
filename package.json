@@ -1,6 +1,6 @@
 {
   "name": "select-all-matching",
-  "version": "1.0.0-rc.1",
+  "version": "1.0.0-rc.2",
   "description": "Select all filtered rows across server-paginated tables without loading every record.",
   "keywords": [
     "bulk-actions",
