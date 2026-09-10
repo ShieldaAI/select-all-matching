@@ -72,6 +72,89 @@ test("keeps keyboard focus when a checkbox updates the table", async ({ page, de
   await expect(pageCheckbox(page)).toBeFocused();
 });
 
+test("returns keyboard focus to the page checkbox after clearing selection", async ({
+  page,
+  demo,
+}) => {
+  expect(demo).toBeTruthy();
+  await row(page).check();
+  const clear = page.getByRole("button", { name: "Clear selection" });
+  await clear.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#selection-summary")).toHaveText("Nothing selected.");
+  await expect(clear).toBeDisabled();
+  await expect(pageCheckbox(page)).toBeFocused();
+});
+
+test("keeps keyboard pagination usable and handles a disabled page button", async ({
+  page,
+  demo,
+}) => {
+  expect(demo).toBeTruthy();
+  const next = page.getByRole("button", { name: "Next page" });
+  const previous = page.getByRole("button", { name: "Previous page" });
+  await next.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#page-summary")).toContainText("Page 2 ");
+  await expect(next).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#page-summary")).toContainText("Page 3 ");
+  await expect(next).toBeFocused();
+  await previous.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#page-summary")).toContainText("Page 2 ");
+  await expect(previous).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#page-summary")).toContainText("Page 1 ");
+  await expect(previous).toBeDisabled();
+  await expect(next).toBeFocused();
+});
+
+for (const allMatching of [false, true]) {
+  test(`keeps focus through ${allMatching ? "all-matching" : "explicit"} preview and execution`, async ({
+    page,
+    demo,
+  }) => {
+    expect(demo).toBeTruthy();
+    if (allMatching) {
+      await page.getByRole("button", { name: "Select all matching" }).focus();
+      await page.keyboard.press("Enter");
+      await expect(page.getByRole("button", { name: "Clear selection" })).toBeFocused();
+    } else {
+      await row(page).check();
+    }
+    const preview = page.getByRole("button", { name: "Preview selection" });
+    await preview.focus();
+    await page.keyboard.press("Enter");
+    await expect(page.locator("#action-result")).toContainText("at preview time");
+    await expect(preview).toBeFocused();
+    await page.getByRole("button", { name: "Mark reviewed" }).focus();
+    await page.keyboard.press("Enter");
+    await expect(page.locator("#selection-summary")).toHaveText("Nothing selected.");
+    await expect(allMatching ? page.getByLabel("Status filter") : pageCheckbox(page)).toBeFocused();
+  });
+}
+
+test("does not reclaim focus moved during a delayed page request", async ({ page, demo }) => {
+  expect(demo).toBeTruthy();
+  const delayed = gate();
+  await page.route("**/api/tenants/north/invoices?**", async (route) => {
+    await delayed.promise;
+    await route.continue();
+  });
+  const requested = page.waitForRequest(
+    (request) => new URL(request.url()).searchParams.get("page") === "2",
+  );
+  await page.getByRole("button", { name: "Next page" }).focus();
+  await page.keyboard.press("Enter");
+  await requested;
+  const search = page.getByLabel("Search invoices");
+  await search.focus();
+  delayed.release();
+  await expect(page.locator("#page-summary")).toContainText("Page 2 ");
+  await expect(search).toBeFocused();
+});
+
 test("sends a compact all-matching request and executes its exclusions", async ({ page, demo }) => {
   await page.getByRole("button", { name: "Select all matching" }).click();
   await expect(row(page)).toBeChecked();

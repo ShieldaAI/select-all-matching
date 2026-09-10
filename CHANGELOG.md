@@ -6,6 +6,21 @@ Notable changes to this project will be recorded here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- Preserve keyboard focus after pagination and bulk actions without reclaiming it after the user
+  moves elsewhere.
+
+### Changed
+
+- Separate release validation from approval-gated publishing. Transfer the tested tarball by
+  immutable artifact ID and verify its digest and package metadata before publishing.
+- Require checked pull requests on `main` and limit release-tag changes to repository administrators.
+
+### Added
+
+- Generated scope/token race tests, direct/indexed read comparisons, and maximum-revision regressions.
+
 ## [1.0.0-rc.1] - 2026-09-06
 
 ### Changed

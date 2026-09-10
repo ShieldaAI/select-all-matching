@@ -48,4 +48,32 @@ Describe the visible behavior, tests run, documentation impact, and anything int
 out. Call out breaking prerelease changes plainly. A pull request is ready when `npm run check`
 passes on a clean checkout and the diff contains no generated output.
 
+`main` requires a pull request, resolved review conversations, and the CI checks from GitHub
+Actions. Direct pushes, force pushes, and deletion are blocked. Reviews are welcome, but a second
+maintainer's approval is not required to merge.
+
+## Releases
+
+Update the version and changelog in a pull request. Once it is merged, tag that commit with its
+exact package version, for example `v1.0.0-rc.2`. Only repository administrators can create or
+change `v*` release tags. Do not move a tag after publishing.
+
+The release workflow verifies that the commit is on `main`, then builds and tests one tarball
+without publishing credentials. It hands that artifact's ID and digest to a separate job. That
+job checks the bytes and manifest before publishing; it does not check out the repository,
+install development dependencies, or run package scripts.
+
+Publishing waits for approval from `VODuda` in the `npm-publish` environment. The release author
+can approve their own run; this is an explicit checkpoint, not independent review. Administrator
+bypass is disabled. Approval should follow inspection of the commit and validation results.
+
+The npm trusted publisher must name `ShieldaAI/select-all-matching`, `publish.yml`, and the exact
+environment `npm-publish`, with direct publishing permitted. Do not retain a second publisher for
+the same workflow without an environment: it would bypass the approval requirement. Changes to
+this registry setting require the maintainer's npm authentication.
+
+Prereleases publish to `next`; stable versions publish to `latest`. After release, verify an exact
+version install, the dist-tags, and `npm audit signatures` in a fresh consumer. The signature and
+provenance should match the released commit and workflow run.
+
 By contributing, you agree that your contribution is licensed under this repository's MIT license.
