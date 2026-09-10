@@ -358,6 +358,60 @@ describe("scope lifecycle and concurrency", () => {
     ).toThrow("scopeRevision cannot be incremented beyond Number.MAX_SAFE_INTEGER");
   });
 
+  it("keeps same-scope reconciliation a no-op at the maximum revision", () => {
+    const decoded = decodeSelection({
+      stateVersion: 1,
+      scopeKey: "A",
+      scopeRevision: Number.MAX_SAFE_INTEGER,
+      selection: { mode: "allMatching", scopeToken: "token", excludedIds: [1] },
+    });
+    if (!decoded.ok) throw new Error("expected valid stored state");
+
+    const result = reconcileScope(decoded.value, {
+      expected: context(decoded.value),
+      nextScopeKey: "A",
+    });
+
+    expect(result).toEqual({ applied: true, state: decoded.value });
+    expect(result.state).toBe(decoded.value);
+  });
+
+  it("rejects an old A token response after revisiting A and making new exclusions", () => {
+    const initial = emptySelection("A");
+    const firstA = expectApplied(
+      selectAllMatching(initial, { ...context(initial), scopeToken: "first-token" }),
+    );
+    const originalContext = context(firstA);
+    const scopeB = expectApplied(
+      reconcileScope(firstA, { expected: originalContext, nextScopeKey: "B" }),
+    );
+    const revisitedA = expectApplied(
+      reconcileScope(scopeB, { expected: context(scopeB), nextScopeKey: "A" }),
+    );
+    const selected = expectApplied(
+      selectAllMatching(revisitedA, { ...context(revisitedA), scopeToken: "new-token" }),
+    );
+    const excluded = expectApplied(
+      setIdSelected(selected, { context: context(selected), id: "1", selected: false }),
+    );
+
+    const delayed = refreshScopeToken(excluded, {
+      context: originalContext,
+      expectedScopeToken: "first-token",
+      nextScopeToken: "delayed-token",
+    });
+
+    // Both context and token are stale; the scope rejection takes precedence.
+    expect(delayed).toEqual({ applied: false, reason: "staleScope", state: excluded });
+    expect(delayed.state).toBe(excluded);
+    expect(delayed.state).toMatchObject({
+      mode: "allMatching",
+      scopeRevision: 2,
+      scopeToken: "new-token",
+      excludedIds: ["1"],
+    });
+  });
+
   it.each(["set", "selectAll", "refresh", "clear"] as const)(
     "rejects stale context for %s without changing state",
     (operation) => {

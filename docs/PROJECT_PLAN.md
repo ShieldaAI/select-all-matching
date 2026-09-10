@@ -21,10 +21,10 @@ a framework adapter API.
 - The same tarball passes package and example checks before publishing.
 - The publish workflow selects `next` for prereleases and `latest` for stable tags.
 
-These are engineering checks. They do not establish that somebody has used the library in their
-own application. Before declaring 1.0, run the RC through a real integration and fix any API
-changes that trial exposes. A second developer should be able to complete the main flow from the
-guides. There is no required star count, download count, or waiting period.
+These are engineering checks, not evidence of production adoption. An integration trial is useful
+for finding awkward API choices, and a second developer should be able to follow the guides.
+Neither an external customer nor a separate production application is required for 1.0. There is
+no required star count, download count, or waiting period.
 
 The [RC publish run](https://github.com/ShieldaAI/select-all-matching/actions/runs/34038534288)
 succeeded through npm's trusted publisher. Private vulnerability reporting is enabled on GitHub;

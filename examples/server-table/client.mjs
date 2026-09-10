@@ -179,6 +179,39 @@ async function runAction(action) {
   }
 }
 
+async function keepControlFocus(control, operation, fallbackIds) {
+  if (document.activeElement !== control) return operation();
+  let moved = false;
+  const stopRestoring = () => {
+    moved = true;
+  };
+  const onFocus = (event) => {
+    if (event.target !== control && event.target !== document.body) stopRestoring();
+  };
+  const onKeyDown = (event) => {
+    if (event.key === "Tab") stopRestoring();
+  };
+  document.addEventListener("focusin", onFocus);
+  document.addEventListener("pointerdown", stopRestoring);
+  document.addEventListener("keydown", onKeyDown);
+  window.addEventListener("blur", stopRestoring);
+  try {
+    await operation();
+  } finally {
+    document.removeEventListener("focusin", onFocus);
+    document.removeEventListener("pointerdown", stopRestoring);
+    document.removeEventListener("keydown", onKeyDown);
+    window.removeEventListener("blur", stopRestoring);
+    // Disabling a focused button can move focus to the body. Restore it only if the user stayed.
+    if (!moved && [document.body, control].includes(document.activeElement)) {
+      const target = [control, ...fallbackIds.map(element), element("status")].find(
+        (candidate) => candidate?.isConnected && !candidate.disabled,
+      );
+      target?.focus({ preventScroll: true });
+    }
+  }
+}
+
 element("filters").addEventListener("submit", (event) => {
   event.preventDefault();
   element("action-result").textContent = "";
@@ -187,12 +220,26 @@ element("filters").addEventListener("submit", (event) => {
     1,
   );
 });
-element("previous").onclick = () => controller.load(undefined, controller.snapshot().page - 1);
-element("next").onclick = () => controller.load(undefined, controller.snapshot().page + 1);
-element("select-all").onclick = () => controller.selectAll();
-element("clear").onclick = () => controller.clear();
-element("preview").onclick = () => runAction("preview");
-element("apply").onclick = () => runAction("apply");
+element("previous").onclick = (event) =>
+  keepControlFocus(
+    event.currentTarget,
+    () => controller.load(undefined, controller.snapshot().page - 1),
+    ["next", "page-checkbox"],
+  );
+element("next").onclick = (event) =>
+  keepControlFocus(
+    event.currentTarget,
+    () => controller.load(undefined, controller.snapshot().page + 1),
+    ["previous", "page-checkbox"],
+  );
+element("select-all").onclick = (event) =>
+  keepControlFocus(event.currentTarget, () => controller.selectAll(), ["clear", "page-checkbox"]);
+element("clear").onclick = (event) =>
+  keepControlFocus(event.currentTarget, () => controller.clear(), ["page-checkbox"]);
+element("preview").onclick = (event) =>
+  keepControlFocus(event.currentTarget, () => runAction("preview"), ["page-checkbox"]);
+element("apply").onclick = (event) =>
+  keepControlFocus(event.currentTarget, () => runAction("apply"), ["page-checkbox"]);
 element("expire").onclick = async () => {
   try {
     await api("/api/demo/expire-scopes", {});
