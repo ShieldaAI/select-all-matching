@@ -4,7 +4,21 @@ Notable changes to this project will be recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and published releases will follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.0.0-rc.3] - Unreleased
+
+### Security
+
+- Reject non-loopback hosts and mismatched request authorities in the local table example before
+  serving assets or accepting mutations.
+- Update Vite to 8.2.4 and Vitest/coverage to 5.0.3 for editor-launcher and mock-server fixes.
+  Update the transitive development dependencies `brace-expansion` to 5.0.12 and `source-map-js`
+  to 1.2.2 for denial-of-service fixes. These dependencies are not part of the published runtime.
+- Disable dependency lifecycle scripts and persisted checkout credentials in CI. Add CodeQL
+  analysis and weekly dependency updates.
+
+### Documentation
+
+- Use the lockfile for local setup and explain how to run the in-memory table example.
 
 ## [1.0.0-rc.2] - 2026-09-11
 
@@ -60,7 +74,7 @@ Notable changes to this project will be recorded here. The format follows
 - Forged runtime states, sparse ID lists, and inherited array values are rejected at input
   boundaries.
 
-[Unreleased]: https://github.com/ShieldaAI/select-all-matching/compare/v1.0.0-rc.2...HEAD
+[1.0.0-rc.3]: https://github.com/ShieldaAI/select-all-matching/compare/v1.0.0-rc.2...HEAD
 [1.0.0-rc.2]: https://github.com/ShieldaAI/select-all-matching/compare/v1.0.0-rc.1...v1.0.0-rc.2
 [1.0.0-rc.1]: https://github.com/ShieldaAI/select-all-matching/compare/v0.1.0-beta.0...v1.0.0-rc.1
 [0.1.0-beta.0]: https://github.com/ShieldaAI/select-all-matching/releases/tag/v0.1.0-beta.0

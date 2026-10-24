@@ -48,7 +48,7 @@ jobs:
         run: node scripts/release-version.mjs
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: Check source and coverage
         run: |
@@ -62,7 +62,7 @@ jobs:
         run: npm run package:check -- --pack-destination "$RUNNER_TEMP/release"
 
       - name: Install browsers
-        run: npx playwright install --with-deps chromium firefox webkit
+        run: npx --no-install playwright install --with-deps chromium firefox webkit
 
       - name: Test the example against the release artifact
         env:

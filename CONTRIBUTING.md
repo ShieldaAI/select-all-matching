@@ -1,6 +1,6 @@
 # Contributing
 
-The API is preparing for 1.0. Keep changes small, and open an issue before adding an adapter
+We are preparing the API for 1.0. Keep changes small, and open an issue before adding an adapter
 or changing the public contract.
 
 ## Before starting
@@ -15,7 +15,7 @@ Use a current Node 22 or Node 24 release and the npm version recorded in `packag
 From a clean checkout:
 
 ```sh
-npm ci
+npm ci --ignore-scripts
 npm run check
 ```
 
@@ -48,15 +48,21 @@ Describe the visible behavior, tests run, documentation impact, and anything int
 out. Call out breaking prerelease changes plainly. A pull request is ready when `npm run check`
 passes on a clean checkout and the diff contains no generated output.
 
-`main` requires a pull request, resolved review conversations, and the CI checks from GitHub
-Actions. Direct pushes, force pushes, and deletion are blocked. Reviews are welcome, but a second
-maintainer's approval is not required to merge.
+`main` and release branches require a pull request, one approving review, resolved review
+conversations, and passing CI checks against the latest base branch. New commits dismiss stale
+approvals, and someone other than the last person to push must approve the latest changes.
+Direct pushes, force pushes, deletion, and administrator bypass are blocked.
+
+CI checks out source without saving its GitHub token and installs dependencies without running
+lifecycle scripts. The CodeQL workflow scans JavaScript, TypeScript, and GitHub Actions without
+building the project. Dependabot checks npm packages and pinned Actions weekly. New workflows
+must pass on GitHub before their checks are added to the required merge checks.
 
 ## Releases
 
 Update the version and changelog in a pull request. Once it is merged, tag that commit with its
-exact package version, for example `v1.0.0-rc.2`. Only repository administrators can create or
-change `v*` release tags. Do not move a tag after publishing.
+exact package version, for example `v1.0.0-rc.3`. Only repository administrators can create
+`v*` release tags. These tags cannot be changed or deleted, including by administrators.
 
 The release workflow verifies that the commit is on `main`, then builds and tests one tarball
 without publishing credentials. It hands that artifact's ID and digest to a separate job. That

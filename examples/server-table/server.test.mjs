@@ -305,6 +305,51 @@ test("scope requests reject stale filters and mutations require same-origin JSON
   );
 });
 
+test("the local example rejects rebinding hosts before serving assets or accepting mutations", async (t) => {
+  const { origin, call } = await fixture(t);
+  const port = new URL(origin).port;
+  async function request(path, host, body) {
+    return new Promise((resolve, reject) => {
+      const outgoing = httpRequest(
+        origin,
+        {
+          path,
+          method: body === undefined ? "GET" : "POST",
+          headers: {
+            Host: host,
+            Origin: `http://${host}`,
+            Cookie: "demo-session=north-alex",
+            "Content-Type": "application/json",
+            "X-Demo-Request": "1",
+          },
+        },
+        (response) => {
+          response.resume();
+          response.on("end", () =>
+            resolve({ status: response.statusCode, headers: response.headers }),
+          );
+        },
+      );
+      outgoing.on("error", reject);
+      outgoing.end(body === undefined ? undefined : JSON.stringify(body));
+    });
+  }
+
+  for (const host of [
+    `attacker.example:${port}`,
+    `localhost.attacker.example:${port}`,
+    "127.0.0.1:1",
+  ]) {
+    const page = await request("/", host);
+    assert.equal(page.status, 403);
+    assert.equal(page.headers["set-cookie"], undefined);
+    assert.equal((await request(`${bulkPath}/apply`, host, explicit(["row-1"]))).status, 403);
+  }
+  assert.equal((await request("http://attacker.example/", `127.0.0.1:${port}`)).status, 403);
+  assert.equal((await request("/", `localhost:${port}`)).status, 200);
+  assert.equal((await call(`${bulkPath}/preview`, { body: explicit(["row-1"]) })).body.count, 1);
+});
+
 test("an already displayed preview does not freeze a live query's eligible set", async (t) => {
   const { call, scope } = await fixture(t);
   const all = toBulkSelection((await scope()).selection).value;

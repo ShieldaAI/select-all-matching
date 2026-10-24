@@ -13,8 +13,9 @@ list of selected IDs or every row in a server-defined scope except a short exclu
 It is framework-agnostic, has no runtime dependencies, and never needs to load every matching ID
 into the browser.
 
-The current release candidate is `1.0.0-rc.2`, available on npm's `next` tag. It writes version-1
-payloads and reads both version 1 and the original beta's version 0. It is not stable 1.0 yet.
+This checkout prepares `1.0.0-rc.3`; npm's `next` tag currently provides `1.0.0-rc.2`.
+The release candidates write version-1 payloads and read both version 1 and the original beta's
+version 0. They are not stable 1.0 yet.
 
 ## Install
 
@@ -37,7 +38,15 @@ components, authentication, or database queries.
 
 ## Try the complete example
 
-From a checkout, run `npm ci` and `npm run example`, then open the printed local URL. The
+From a checkout, use a current Node 22 or Node 24 release:
+
+```sh
+npm ci --ignore-scripts
+npm run example
+```
+
+Open the printed local URL. The demo needs no database, API key, or environment file;
+its records live in memory and reset when you restart it. The
 [server table example](https://github.com/ShieldaAI/select-all-matching/tree/main/examples/server-table) installs the packed package and includes
 real HTTP pagination, filters, expiring scopes, permission changes, and a harmless bulk action.
 
@@ -130,7 +139,7 @@ sensitive scope token; it is not a durable saved query and does not renew author
 Use a current Node 22 or Node 24 release:
 
 ```sh
-npm ci
+npm ci --ignore-scripts
 npm run check
 npm run test:coverage
 npx playwright install chromium firefox webkit
