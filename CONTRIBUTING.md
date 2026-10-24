@@ -48,10 +48,10 @@ Describe the visible behavior, tests run, documentation impact, and anything int
 out. Call out breaking prerelease changes plainly. A pull request is ready when `npm run check`
 passes on a clean checkout and the diff contains no generated output.
 
-`main` and release branches require a pull request, one approving review, resolved review
-conversations, and passing CI checks against the latest base branch. New commits dismiss stale
-approvals, and someone other than the last person to push must approve the latest changes.
-Direct pushes, force pushes, deletion, and administrator bypass are blocked.
+`main` and release branches require a pull request, resolved review conversations, and passing
+CI and CodeQL checks against the latest base branch. The sole maintainer can merge their own
+checked pull request without another person's approval. Direct pushes, force pushes, deletion,
+and administrator bypass are blocked.
 
 CI checks out source without saving its GitHub token and installs dependencies without running
 lifecycle scripts. The CodeQL workflow scans JavaScript, TypeScript, and GitHub Actions without

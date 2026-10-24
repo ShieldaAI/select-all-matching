@@ -13,7 +13,7 @@ list of selected IDs or every row in a server-defined scope except a short exclu
 It is framework-agnostic, has no runtime dependencies, and never needs to load every matching ID
 into the browser.
 
-This checkout prepares `1.0.0-rc.3`; npm's `next` tag currently provides `1.0.0-rc.2`.
+Version `1.0.0-rc.3` is a release candidate for the 1.0 API.
 The release candidates write version-1 payloads and read both version 1 and the original beta's
 version 0. They are not stable 1.0 yet.
 

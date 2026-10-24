@@ -12,9 +12,8 @@ requires a major release. Deprecated exports remain available throughout 1.x.
 The checked-in declaration report records the public type surface. Review changes alongside the
 changelog; regenerating the report does not make a breaking change acceptable.
 
-The working version is `1.0.0-rc.3`. An RC can still change before 1.0; any such change must be called
-out. The release workflow publishes prereleases to `next` and stable releases to `latest`. The
-registry check on 2026-10-24, before publishing rc.3, found both tags pointing to `1.0.0-rc.2`.
+This release is `1.0.0-rc.3`. An RC can still change before 1.0; any such change must be called
+out. The release workflow publishes prereleases to `next` and stable releases to `latest`.
 Use an exact version when pinning a deployment and check the version itself before treating a
 release as stable.
 
