@@ -20,6 +20,32 @@ class HttpError extends Error {
   }
 }
 
+function localRequestUrl(request) {
+  let origin;
+  let url;
+  try {
+    origin = new URL(`http://${request.headers.host}`);
+    url = new URL(request.url, origin);
+  } catch {
+    throw new HttpError(403, "host_rejected");
+  }
+  // A loopback listener alone does not stop a website whose DNS answer changes to localhost.
+  if (
+    !["localhost", "127.0.0.1", "[::1]"].includes(origin.hostname) ||
+    Number(origin.port || 80) !== request.socket.localPort ||
+    origin.username ||
+    origin.password ||
+    origin.pathname !== "/" ||
+    origin.search ||
+    origin.hash ||
+    !request.url.startsWith("/") ||
+    url.origin !== origin.origin
+  ) {
+    throw new HttpError(403, "host_rejected");
+  }
+  return url;
+}
+
 function send(response, status, value) {
   response.writeHead(status, {
     "Content-Type": "application/json; charset=utf-8",
@@ -182,7 +208,7 @@ export function createDemoServer({ now = Date.now, tokenTtlMs = 60_000 } = {}) {
 
   const server = createServer(async (request, response) => {
     try {
-      const url = new URL(request.url, "http://localhost");
+      const url = localRequestUrl(request);
       if (request.method === "GET" && !url.pathname.startsWith("/api/")) {
         const assets = new Map([
           ["/", ["index.html", "text/html; charset=utf-8"]],
@@ -217,7 +243,7 @@ export function createDemoServer({ now = Date.now, tokenTtlMs = 60_000 } = {}) {
 
       const session = authenticate(request);
       if (request.method === "POST") {
-        // JSON + this header requires a same-origin request; no CORS is enabled.
+        // Cross-origin browser requests need a preflight for this header; this server allows no CORS.
         if (
           request.headers["x-demo-request"] !== "1" ||
           (request.headers.origin && request.headers.origin !== `http://${request.headers.host}`)

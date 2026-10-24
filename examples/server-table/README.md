@@ -4,10 +4,10 @@ A browser table backed by a real HTTP server and 100,000 deterministic records. 
 25 rows at a time. Its bulk request contains either explicit IDs or a random server handle and
 excluded IDs. The table and server import the installed package's public exports.
 
-From the repository root:
+From the repository root, using a current Node 22 or Node 24 release:
 
 ```sh
-npm install
+npm ci --ignore-scripts
 npm run example
 ```
 
@@ -17,8 +17,8 @@ For a standalone copy, install a library tarball here and run `npm start`.
 
 Try selecting a page, moving to the next page, and selecting all matching. Uncheck a row to add an
 exclusion. Changing the filter clears selection; changing the page preserves it. Locked and reviewed
-rows are disabled. A preview reports the current eligible count from the server. Mark reviewed
-checks again and changes only in-memory flags.
+rows are disabled. A preview reports the current eligible count from the server. **Mark reviewed**
+checks eligibility again and updates the records in memory.
 
 Open **Request and server checks** to expire scope tokens or revoke the current user's permission.
 The next bulk request fails even though the browser still holds the selection. Restore permission,
@@ -53,7 +53,9 @@ operations, so the client never receives every matching ID.
 
 ## Demo limitations
 
-This server is for localhost. It sets a fixed `demo-session=north-alex` cookie on the first page load;
+This server is for localhost. It accepts only a loopback hostname and its listening port in the
+`Host` header, so a website cannot reach it by changing its DNS answer to a loopback address.
+It sets a fixed `demo-session=north-alex` cookie on the first page load;
 tests also use `north-sam` and `south-alex`. Those cookie values are deliberately guessable, and the
 permission/expiry endpoints are demonstration controls. Replace them with real authentication and
 administrator-only controls before adapting this code. JSON, a required custom header, same-origin

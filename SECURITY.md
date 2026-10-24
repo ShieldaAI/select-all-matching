@@ -22,8 +22,8 @@ Include, when it is safe to do so:
 - whether a scope token or cross-tenant/resource boundary is involved; and
 - any suggested mitigation.
 
-There is no response-time SLA during early development. We will coordinate a fix as capacity allows
-and credit reporters who want credit.
+We cannot promise a response time during early development. We will coordinate a fix as capacity
+allows and credit reporters who want to be named.
 
 ## Security boundary
 

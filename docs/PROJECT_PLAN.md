@@ -2,7 +2,7 @@
 
 ## 1.0 scope
 
-The stable package covers the headless selection state machine, indexed reads, state transfer,
+The planned 1.0 release covers the headless selection state machine, indexed reads, state transfer,
 bulk-request encoding, and server decoding. Scope-token storage, query execution, authentication,
 authorization, and table components belong to the application.
 
@@ -21,10 +21,8 @@ a framework adapter API.
 - The same tarball passes package and example checks before publishing.
 - The publish workflow selects `next` for prereleases and `latest` for stable tags.
 
-These are engineering checks, not evidence of production adoption. An integration trial is useful
-for finding awkward API choices, and a second developer should be able to follow the guides.
-Neither an external customer nor a separate production application is required for 1.0. There is
-no required star count, download count, or waiting period.
+Release readiness depends on these checks and a usable integration path. An integration trial and
+a fresh read of the guides can catch awkward API choices that automated tests miss.
 
 The [RC publish run](https://github.com/ShieldaAI/select-all-matching/actions/runs/34038534288)
 succeeded through npm's trusted publisher. Private vulnerability reporting is enabled on GitHub;

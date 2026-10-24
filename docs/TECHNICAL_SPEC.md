@@ -194,8 +194,9 @@ type BulkSelection<Id> =
     };
 ```
 
-`encodeSelection` produces a JSON-compatible transfer value. `decodeSelection` validates it and restores a normalized
-package state. `toBulkSelection` converts current state into a request; empty state becomes `null`.
+`encodeSelection` produces a JSON-compatible transfer value. `decodeSelection` validates it and
+restores a normalized package state. `toBulkSelection` converts current state into a request;
+empty state becomes `null`.
 The `/server` entry point exports `decodeBulkSelection` for untrusted request bodies.
 
 External decoders accept `unknown` and return structured errors for payload failures. Bad codec
@@ -273,8 +274,8 @@ An all-matching request should follow this shape:
 
 The operation name comes from server routing or application code, never from the decoded selection
 body. Resolution and authorization failures should look the same to an external caller when
-detailed errors would create an oracle. A preview is advisory under live-query semantics; execution
-resolves and authorizes again.
+different errors would reveal which resources exist. A preview reflects the query's current results;
+execution resolves and authorizes again.
 
 For explicit mode, the request intentionally omits the old scope. Each ID is authorized directly.
 An ID that no longer matches the filter where it was selected can still be acted on. Applications
